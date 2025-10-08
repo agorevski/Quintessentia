@@ -67,13 +67,13 @@ namespace SpotifySummarizer.Controllers
                     return BadRequest("Failed to download or retrieve episode.");
                 }
 
-                // Return success with the cached file path
+                // Return success without exposing file path
                 var result = new AudioProcessResult
                 {
                     Success = true,
                     Message = wasCached ? "Episode retrieved from cache" : "Episode downloaded successfully",
                     EpisodeId = cacheKey,
-                    FilePath = episodePath,
+                    FilePath = "cached", // Don't expose actual file path
                     WasCached = wasCached
                 };
 
@@ -96,7 +96,8 @@ namespace SpotifySummarizer.Controllers
         {
             try
             {
-                var cacheKey = GenerateCacheKey(episodeId);
+                // episodeId is already the cache key, no need to hash it again
+                var cacheKey = episodeId;
                 
                 // Check if episode exists in database
                 var episode = await _dbContext.AudioEpisodes
@@ -180,7 +181,7 @@ namespace SpotifySummarizer.Controllers
 
                 if (System.IO.File.Exists(summaryTextPath))
                 {
-                    summaryText = await System.IO.File.ReadAllTextAsync(summaryTextPath);
+                    summaryText = TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath));
                     summaryWordCount = summaryText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 }
 
@@ -196,11 +197,10 @@ namespace SpotifySummarizer.Controllers
                     Success = true,
                     Message = summaryWasCached ? "Summary retrieved from cache" : "Episode processed and summarized successfully",
                     EpisodeId = cacheKey,
-                    FilePath = episodePath,
+                    FilePath = "cached", // Don't expose actual file path
                     WasCached = wasCached,
                     SummaryAudioPath = summaryAudioPath,
                     SummaryWasCached = summaryWasCached,
-                    TranscriptPath = transcriptPath,
                     SummaryText = summaryText,
                     ProcessingDuration = stopwatch.Elapsed,
                     TranscriptWordCount = transcriptWordCount,
@@ -231,35 +231,50 @@ namespace SpotifySummarizer.Controllers
                     return BadRequest("Episode ID is required.");
                 }
 
-                // Get episode path
-                var episodePath = _audioService.GetCachedEpisodePath(episodeId);
-                if (!System.IO.File.Exists(episodePath))
+                // episodeId is already the cache key, no need to hash it again
+                var cacheKey = episodeId;
+
+                // Check if episode exists in database
+                var episode = await _dbContext.AudioEpisodes
+                    .Include(e => e.Summary)
+                    .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
+
+                if (episode == null)
                 {
                     return NotFound("Episode not found.");
                 }
 
-                // Check if summary exists
-                var summaryPath = _audioService.GetSummaryPath(episodeId);
-                var hasSummary = System.IO.File.Exists(summaryPath);
-
-                // Load transcript and summary text for display
-                var transcriptPath = Path.Combine(Path.GetDirectoryName(episodePath)!, $"{episodeId}_transcript.txt");
-                var summaryTextPath = Path.Combine(Path.GetDirectoryName(episodePath)!, $"{episodeId}_summary.txt");
+                // Check if summary exists using the service method
+                var hasSummary = _audioService.IsSummaryCached(episodeId);
 
                 string? summaryText = null;
                 int? transcriptWordCount = null;
                 int? summaryWordCount = null;
+                string? summaryAudioPath = null;
 
-                if (System.IO.File.Exists(summaryTextPath))
+                // If summary exists, load the summary text from blob storage
+                if (hasSummary && episode.Summary != null)
                 {
-                    summaryText = await System.IO.File.ReadAllTextAsync(summaryTextPath);
-                    summaryWordCount = summaryText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-                }
+                    var transcriptsContainer = GetContainerName("Transcripts");
+                    var summaryTextBlobName = $"{cacheKey}_summary.txt";
 
-                if (System.IO.File.Exists(transcriptPath))
-                {
-                    var transcript = await System.IO.File.ReadAllTextAsync(transcriptPath);
-                    transcriptWordCount = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                    try
+                    {
+                        var summaryTextStream = new MemoryStream();
+                        await _blobStorageService.DownloadToStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream);
+                        summaryTextStream.Position = 0;
+                        using var reader = new StreamReader(summaryTextStream);
+                        summaryText = TrimNonAlphanumeric(await reader.ReadToEndAsync());
+                        summaryWordCount = episode.Summary.SummaryWordCount;
+                        transcriptWordCount = episode.Summary.TranscriptWordCount;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not load summary text for episode: {CacheKey}", cacheKey);
+                    }
+
+                    // Set the summary audio path to indicate it exists (actual path doesn't matter for display)
+                    summaryAudioPath = "available";
                 }
 
                 // Build result model
@@ -267,12 +282,11 @@ namespace SpotifySummarizer.Controllers
                 {
                     Success = true,
                     Message = "Episode processed successfully",
-                    EpisodeId = episodeId,
-                    FilePath = episodePath,
+                    EpisodeId = cacheKey,
+                    FilePath = "cached", // Don't expose actual file path
                     WasCached = true,
-                    SummaryAudioPath = hasSummary ? summaryPath : null,
+                    SummaryAudioPath = summaryAudioPath,
                     SummaryWasCached = hasSummary,
-                    TranscriptPath = transcriptPath,
                     SummaryText = summaryText,
                     TranscriptWordCount = transcriptWordCount,
                     SummaryWordCount = summaryWordCount
@@ -292,7 +306,8 @@ namespace SpotifySummarizer.Controllers
         {
             try
             {
-                var cacheKey = GenerateCacheKey(episodeId);
+                // episodeId is already the cache key, no need to hash it again
+                var cacheKey = episodeId;
                 
                 // Check if summary exists in database
                 var episode = await _dbContext.AudioEpisodes
@@ -426,7 +441,7 @@ namespace SpotifySummarizer.Controllers
 
                 if (System.IO.File.Exists(summaryTextPath))
                 {
-                    summaryText = await System.IO.File.ReadAllTextAsync(summaryTextPath);
+                    summaryText = TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath));
                     summaryWordCount = summaryText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 }
 
@@ -478,6 +493,29 @@ namespace SpotifySummarizer.Controllers
             
             await Response.Body.WriteAsync(bytes);
             await Response.Body.FlushAsync();
+        }
+
+        private string TrimNonAlphanumeric(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            // Find first alphanumeric character from the start
+            int start = 0;
+            while (start < text.Length && !char.IsLetterOrDigit(text[start]))
+            {
+                start++;
+            }
+
+            // Find last alphanumeric character from the end
+            int end = text.Length - 1;
+            while (end >= start && !char.IsLetterOrDigit(text[end]))
+            {
+                end--;
+            }
+
+            // Return trimmed substring
+            return start <= end ? text.Substring(start, end - start + 1) : string.Empty;
         }
 
         private string GenerateCacheKey(string url)

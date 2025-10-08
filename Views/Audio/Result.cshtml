@@ -26,7 +26,7 @@
                                 <p class="card-text mb-2">
                                     <strong>Episode ID:</strong> @Model.EpisodeId
                                 </p>
-                                <p class="card-text mb-2">
+                                <p class="card-text mb-0">
                                     <strong>Status:</strong> 
                                     @if (Model.WasCached)
                                     {
@@ -40,9 +40,6 @@
                                             <i class="bi bi-download"></i> Newly downloaded
                                         </span>
                                     }
-                                </p>
-                                <p class="card-text mb-0">
-                                    <strong>File Path:</strong> <code class="text-break">@Model.FilePath</code>
                                 </p>
                             </div>
                         </div>
