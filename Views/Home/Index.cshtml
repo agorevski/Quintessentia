@@ -6,10 +6,10 @@
     <div class="row justify-content-center align-items-center min-vh-100">
         <div class="col-md-8 col-lg-6">
             <div class="text-center mb-5">
-                <h1 class="display-3 fw-bold text-primary mb-3">
-                    <i class="bi bi-droplet"></i> Quintessentia
+                <h1 class="display-3 fw-bold mb-3" style="color: #0891b2; text-shadow: 2px 2px 8px rgba(8, 145, 178, 0.3);">
+                    <i class="bi bi-droplet" style="display: inline-block; filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.5));"></i> Quintessentia
                 </h1>
-                <p class="lead text-muted">Distilling audio down to its pure essence</p>
+                <p class="lead text-muted" style="font-size: 1.3rem; text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Distilling audio down to its pure essence</p>
             </div>
 
             <div class="card shadow-lg border-0">
@@ -53,14 +53,11 @@
                             </div>
                         </div>
                         
-                        <div class="d-grid gap-2">
+                        <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg" id="goButton">
                                 <i class="bi bi-stars"></i>
                                 <span id="buttonText">Process & Summarize</span>
                                 <span id="buttonSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-lg" id="downloadOnlyButton">
-                                <i class="bi bi-download"></i> Download Only (No AI)
                             </button>
                         </div>
                     </form>
@@ -99,11 +96,9 @@
             const button = document.getElementById('goButton');
             const buttonText = document.getElementById('buttonText');
             const buttonSpinner = document.getElementById('buttonSpinner');
-            const downloadButton = document.getElementById('downloadOnlyButton');
             const urlInput = document.getElementById('audioUrl');
             
             button.disabled = true;
-            downloadButton.disabled = true;
             urlInput.disabled = true;
             buttonText.textContent = 'Processing...';
             buttonSpinner.classList.remove('d-none');
@@ -138,7 +133,6 @@
                         } else {
                             // Show error
                             button.disabled = false;
-                            downloadButton.disabled = false;
                             urlInput.disabled = false;
                             buttonText.textContent = 'Process & Summarize';
                             buttonSpinner.classList.add('d-none');
@@ -155,30 +149,12 @@
                 
                 // Re-enable form
                 button.disabled = false;
-                downloadButton.disabled = false;
                 urlInput.disabled = false;
                 buttonText.textContent = 'Process & Summarize';
                 buttonSpinner.classList.add('d-none');
                 
                 addStatusItem('error', 'Connection error', true);
             };
-        });
-
-        document.getElementById('downloadOnlyButton').addEventListener('click', function(e) {
-            const form = document.getElementById('audioForm');
-            const originalAction = form.action;
-            
-            // Change form action to the download-only endpoint
-            form.action = form.action.replace('ProcessAndSummarize', 'Process');
-            
-            // Re-enable default form submission
-            form.removeEventListener('submit', arguments.callee);
-            
-            // Submit the form
-            form.submit();
-            
-            // Restore original action (in case user clicks back)
-            form.action = originalAction;
         });
 
         function handleStatusUpdate(status) {
