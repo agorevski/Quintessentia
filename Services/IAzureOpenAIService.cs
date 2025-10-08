@@ -1,4 +1,4 @@
-namespace SpotifySummarizer.Services
+namespace Quintessentia.Services
 {
     public interface IAzureOpenAIService
     {

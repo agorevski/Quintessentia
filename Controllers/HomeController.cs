@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using SpotifySummarizer.Models;
+using Quintessentia.Models;
 
-namespace SpotifySummarizer.Controllers;
+namespace Quintessentia.Controllers;
 
 public class HomeController : Controller
 {

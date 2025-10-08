@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using SpotifySummarizer.Models;
+using Quintessentia.Models;
 
-namespace SpotifySummarizer.Data
+namespace Quintessentia.Data
 {
     public class ApplicationDbContext : DbContext
     {

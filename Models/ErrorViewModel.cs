@@ -1,4 +1,4 @@
-namespace SpotifySummarizer.Models;
+namespace Quintessentia.Models;
 
 public class ErrorViewModel
 {

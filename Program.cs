@@ -1,7 +1,7 @@
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
-using SpotifySummarizer.Data;
-using SpotifySummarizer.Services;
+using Quintessentia.Data;
+using Quintessentia.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

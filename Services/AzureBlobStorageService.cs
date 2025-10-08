@@ -1,7 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
-namespace SpotifySummarizer.Services
+namespace Quintessentia.Services
 {
     public class AzureBlobStorageService : IBlobStorageService
     {

@@ -1,6 +1,6 @@
-using SpotifySummarizer.Models;
+using Quintessentia.Models;
 
-namespace SpotifySummarizer.Services
+namespace Quintessentia.Services
 {
     public interface IAudioService
     {

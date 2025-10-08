@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using SpotifySummarizer.Data;
-using SpotifySummarizer.Models;
+using Quintessentia.Data;
+using Quintessentia.Models;
 
-namespace SpotifySummarizer.Services
+namespace Quintessentia.Services
 {
     public class AudioService : IAudioService
     {

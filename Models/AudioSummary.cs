@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace SpotifySummarizer.Models
+namespace Quintessentia.Models
 {
     public class AudioSummary
     {

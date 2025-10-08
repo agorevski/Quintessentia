@@ -6,7 +6,7 @@ using System.ClientModel;
 using System.Diagnostics;
 using System.Text;
 
-namespace SpotifySummarizer.Services
+namespace Quintessentia.Services
 {
     public class AzureOpenAIService : IAzureOpenAIService
     {

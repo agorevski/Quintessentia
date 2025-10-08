@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SpotifySummarizer.Data;
-using SpotifySummarizer.Models;
-using SpotifySummarizer.Services;
+using Quintessentia.Data;
+using Quintessentia.Models;
+using Quintessentia.Services;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text;
 
-namespace SpotifySummarizer.Controllers
+namespace Quintessentia.Controllers
 {
     public class AudioController : Controller
     {
