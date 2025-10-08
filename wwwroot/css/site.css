@@ -1,0 +1,88 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}
+
+/* Custom Spotify Summarizer Styles */
+.card {
+  border-radius: 15px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+  border: none;
+  border-radius: 50px;
+  padding: 15px 30px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1ed760 0%, #1DB954 100%);
+  transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(29, 185, 84, 0.3);
+}
+
+.btn-primary:disabled {
+  background: #cccccc;
+  transform: none;
+}
+
+.form-control-lg {
+  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control-lg:focus {
+  border-color: #1DB954;
+  box-shadow: 0 0 0 0.2rem rgba(29, 185, 84, 0.25);
+}
+
+.text-primary {
+  color: #1DB954 !important;
+}
+
+.bi-spotify {
+  color: #1DB954;
+}
+
+.min-vh-100 {
+  min-height: 100vh;
+}

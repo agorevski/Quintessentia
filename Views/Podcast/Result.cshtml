@@ -1,0 +1,137 @@
+@model SpotifySummarizer.Models.PodcastProcessResult
+
+@{
+    ViewData["Title"] = "Processing Result";
+}
+
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    @if (Model.Success)
+                    {
+                        <div class="text-center mb-4">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                            <h2 class="mt-3 fw-bold">Success!</h2>
+                        </div>
+
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-info-circle-fill"></i> @Model.Message
+                        </div>
+
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-file-earmark-music"></i> Episode Details</h5>
+                                <p class="card-text mb-2">
+                                    <strong>Episode ID:</strong> @Model.EpisodeId
+                                </p>
+                                <p class="card-text mb-2">
+                                    <strong>Status:</strong> 
+                                    @if (Model.WasCached)
+                                    {
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-lightning-fill"></i> Retrieved from cache
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-download"></i> Newly downloaded
+                                        </span>
+                                    }
+                                </p>
+                                <p class="card-text mb-0">
+                                    <strong>File Path:</strong> <code class="text-break">@Model.FilePath</code>
+                                </p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.SummaryAudioPath))
+                        {
+                            <div class="card bg-primary bg-gradient text-white mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-stars"></i> AI-Generated Summary</h5>
+                                    
+                                    @if (Model.ProcessingDuration.HasValue)
+                                    {
+                                        <p class="card-text mb-2">
+                                            <strong>Processing Time:</strong> @Model.ProcessingDuration.Value.ToString(@"mm\:ss")
+                                        </p>
+                                    }
+                                    
+                                    @if (Model.SummaryWasCached)
+                                    {
+                                        <p class="card-text mb-2">
+                                            <span class="badge bg-light text-primary">
+                                                <i class="bi bi-lightning-fill"></i> Retrieved from cache
+                                            </span>
+                                        </p>
+                                    }
+                                    
+                                    @if (Model.TranscriptWordCount.HasValue && Model.SummaryWordCount.HasValue)
+                                    {
+                                        <p class="card-text mb-2">
+                                            <strong>Compression:</strong> 
+                                            @Model.TranscriptWordCount.Value words → @Model.SummaryWordCount.Value words
+                                            (@Math.Round((double)Model.SummaryWordCount.Value / Model.TranscriptWordCount.Value * 100, 1)%)
+                                        </p>
+                                        <p class="card-text mb-0">
+                                            <strong>Estimated Duration:</strong> ~@Math.Round((double)Model.SummaryWordCount.Value / 150.0, 1) minutes
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(Model.SummaryText))
+                            {
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <h5 class="card-title"><i class="bi bi-file-text"></i> Summary Text</h5>
+                                        <div class="summary-text" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;">
+                                            @Model.SummaryText
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+
+                        <div class="d-grid gap-2">
+                            @if (!string.IsNullOrEmpty(Model.SummaryAudioPath))
+                            {
+                                <a asp-controller="Podcast" asp-action="DownloadSummary" asp-route-episodeId="@Model.EpisodeId" 
+                                   class="btn btn-primary btn-lg">
+                                    <i class="bi bi-download"></i> Download Summary (5-min)
+                                </a>
+                            }
+                            <a asp-controller="Podcast" asp-action="Download" asp-route-episodeId="@Model.EpisodeId" 
+                               class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-download"></i> Download Original Episode
+                            </a>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-arrow-left"></i> Process Another Episode
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center mb-4">
+                            <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 4rem;"></i>
+                            <h2 class="mt-3 fw-bold">Error</h2>
+                        </div>
+
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-circle-fill"></i> @Model.Message
+                        </div>
+
+                        <div class="d-grid">
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-primary btn-lg">
+                                <i class="bi bi-arrow-left"></i> Try Again
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

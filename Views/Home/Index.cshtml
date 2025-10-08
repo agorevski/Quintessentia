@@ -1,0 +1,263 @@
+﻿@{
+    ViewData["Title"] = "Quintessentia";
+}
+
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-8 col-lg-6">
+            <div class="text-center mb-5">
+                <h1 class="display-3 fw-bold text-primary mb-3">
+                    <i class="bi bi-droplet"></i> Quintessentia
+                </h1>
+                <p class="lead text-muted">Distilling podcasts down to their pure essence</p>
+            </div>
+
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <form id="podcastForm" asp-controller="Podcast" asp-action="ProcessAndSummarize" method="post">
+                        <div class="mb-4">
+                            <label for="spotifyUrl" class="form-label fw-semibold">Podcast Episode MP3 URL</label>
+                            <input type="url" 
+                                   class="form-control form-control-lg" 
+                                   id="spotifyUrl" 
+                                   name="spotifyUrl" 
+                                   placeholder="https://example.com/podcast-episode.mp3" 
+                                   required>
+                            <div class="form-text">Paste a direct URL to an MP3 podcast episode file</div>
+                        </div>
+
+                        <div class="alert alert-info mb-4" role="alert">
+                            <i class="bi bi-magic"></i> <strong>AI Processing Pipeline:</strong>
+                            <ol class="mb-0 mt-2 ps-3">
+                                <li>Download & cache original episode</li>
+                                <li>Transcribe audio to text (whisper)</li>
+                                <li>Summarize to 5-minute content (gpt-5)</li>
+                                <li>Generate summary audio (gpt-4o-mini-tts)</li>
+                            </ol>
+                        </div>
+
+                        <div id="processingProgress" class="card mb-4 d-none">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">
+                                    <i class="bi bi-hourglass-split"></i> Processing Status
+                                </h5>
+                                <div class="progress mb-3" style="height: 25px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                        0%
+                                    </div>
+                                </div>
+                                <ul id="statusList" class="list-group list-group-flush">
+                                    <!-- Status updates will be added here -->
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="goButton">
+                                <i class="bi bi-stars"></i>
+                                <span id="buttonText">Process & Summarize</span>
+                                <span id="buttonSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg" id="downloadOnlyButton">
+                                <i class="bi bi-download"></i> Download Only (No AI)
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="resultSection" class="mt-4 d-none">
+                        <hr class="my-4">
+                        <div id="resultContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle"></i> Enter a direct MP3 URL to download and cache the podcast episode
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let eventSource = null;
+        let latestStatus = null;
+
+        document.getElementById('podcastForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const spotifyUrl = document.getElementById('spotifyUrl').value;
+            if (!spotifyUrl) {
+                alert('Please enter a podcast URL');
+                return;
+            }
+
+            // Disable form and show processing state
+            const button = document.getElementById('goButton');
+            const buttonText = document.getElementById('buttonText');
+            const buttonSpinner = document.getElementById('buttonSpinner');
+            const downloadButton = document.getElementById('downloadOnlyButton');
+            const urlInput = document.getElementById('spotifyUrl');
+            
+            button.disabled = true;
+            downloadButton.disabled = true;
+            urlInput.disabled = true;
+            buttonText.textContent = 'Processing...';
+            buttonSpinner.classList.remove('d-none');
+
+            // Show progress section
+            const progressSection = document.getElementById('processingProgress');
+            progressSection.classList.remove('d-none');
+
+            // Clear previous status
+            document.getElementById('statusList').innerHTML = '';
+            updateProgressBar(0);
+
+            // Connect to SSE endpoint
+            const encodedUrl = encodeURIComponent(spotifyUrl);
+            eventSource = new EventSource(`/Podcast/ProcessAndSummarizeStream?spotifyUrl=${encodedUrl}`);
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const status = JSON.parse(event.data);
+                    latestStatus = status;
+                    handleStatusUpdate(status);
+
+                    // If complete or error, close connection and redirect
+                    if (status.isComplete || status.isError) {
+                        eventSource.close();
+                        
+                        if (status.isComplete) {
+                            // Redirect to result page with query parameters
+                            setTimeout(() => {
+                                window.location.href = `/Podcast/Result?episodeId=${encodeURIComponent(status.episodeId)}`;
+                            }, 1000);
+                        } else {
+                            // Show error
+                            button.disabled = false;
+                            downloadButton.disabled = false;
+                            urlInput.disabled = false;
+                            buttonText.textContent = 'Process & Summarize';
+                            buttonSpinner.classList.add('d-none');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error parsing status update:', error);
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.error('SSE Error:', error);
+                eventSource.close();
+                
+                // Re-enable form
+                button.disabled = false;
+                downloadButton.disabled = false;
+                urlInput.disabled = false;
+                buttonText.textContent = 'Process & Summarize';
+                buttonSpinner.classList.add('d-none');
+                
+                addStatusItem('error', 'Connection error', true);
+            };
+        });
+
+        document.getElementById('downloadOnlyButton').addEventListener('click', function(e) {
+            const form = document.getElementById('podcastForm');
+            const originalAction = form.action;
+            
+            // Change form action to the download-only endpoint
+            form.action = form.action.replace('ProcessAndSummarize', 'Process');
+            
+            // Re-enable default form submission
+            form.removeEventListener('submit', arguments.callee);
+            
+            // Submit the form
+            form.submit();
+            
+            // Restore original action (in case user clicks back)
+            form.action = originalAction;
+        });
+
+        function handleStatusUpdate(status) {
+            // Update progress bar
+            updateProgressBar(status.progress);
+
+            // Add status item to list
+            const icon = getStatusIcon(status.stage);
+            const isError = status.isError || false;
+            addStatusItem(status.stage, status.message, isError, icon);
+        }
+
+        function updateProgressBar(progress) {
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
+            progressBar.textContent = progress + '%';
+
+            // Change color based on progress
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            if (progress === 100) {
+                progressBar.classList.add('bg-success');
+            } else if (progress === 0) {
+                progressBar.classList.add('bg-danger');
+            }
+        }
+
+        function getStatusIcon(stage) {
+            const icons = {
+                'downloading': 'bi-download',
+                'downloaded': 'bi-check-circle-fill',
+                'transcribing': 'bi-mic',
+                'transcribed': 'bi-check-circle-fill',
+                'summarizing': 'bi-lightning',
+                'summarized': 'bi-check-circle-fill',
+                'generating-speech': 'bi-volume-up',
+                'complete': 'bi-check-circle-fill',
+                'error': 'bi-exclamation-triangle-fill'
+            };
+            return icons[stage] || 'bi-circle';
+        }
+
+        function addStatusItem(stage, message, isError = false, icon = 'bi-circle') {
+            const statusList = document.getElementById('statusList');
+            
+            // Check if item for this stage already exists
+            const existingItem = document.querySelector(`[data-stage="${stage}"]`);
+            if (existingItem) {
+                // Update existing item
+                existingItem.querySelector('.status-message').textContent = message;
+                if (!isError && stage !== 'error') {
+                    existingItem.classList.remove('list-group-item-warning');
+                    existingItem.classList.add('list-group-item-success');
+                }
+                return;
+            }
+
+            // Create new status item
+            const item = document.createElement('li');
+            item.className = 'list-group-item d-flex align-items-center';
+            item.setAttribute('data-stage', stage);
+            
+            if (isError) {
+                item.classList.add('list-group-item-danger');
+            } else if (stage.includes('complete') || stage.includes('ed')) {
+                item.classList.add('list-group-item-success');
+            } else {
+                item.classList.add('list-group-item-warning');
+            }
+
+            item.innerHTML = `
+                <i class="bi ${icon} me-2"></i>
+                <span class="status-message">${message}</span>
+            `;
+
+            statusList.appendChild(item);
+            
+            // Scroll to bottom
+            statusList.scrollTop = statusList.scrollHeight;
+        }
+    </script>
+}
