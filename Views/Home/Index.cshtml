@@ -13,8 +13,24 @@
             </div>
 
             <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
+                <div class="card-body p-5 position-relative">
+                    <!-- Settings Icon -->
+                    <button type="button" class="btn btn-link position-absolute top-0 end-0 mt-3 me-3 p-0 position-relative" 
+                            id="settingsButton" data-bs-toggle="modal" data-bs-target="#settingsModal"
+                            title="Azure OpenAI Settings"
+                            style="overflow: visible;">
+                        <i class="bi bi-gear-fill fs-4 text-secondary"></i>
+                        <span id="customSettingsBadge" class="position-absolute badge rounded-pill bg-info d-none" 
+                              style="font-size: 0.6rem; top: -8px; right: -12px;">Custom</span>
+                    </button>
+
                     <form id="audioForm" asp-controller="Audio" asp-action="ProcessAndSummarize" method="post">
+                        <!-- Hidden fields for settings -->
+                        <input type="hidden" id="settingsEndpoint" name="settingsEndpoint" />
+                        <input type="hidden" id="settingsKey" name="settingsKey" />
+                        <input type="hidden" id="settingsWhisperDeployment" name="settingsWhisperDeployment" />
+                        <input type="hidden" id="settingsGptDeployment" name="settingsGptDeployment" />
+                        <input type="hidden" id="settingsTtsDeployment" name="settingsTtsDeployment" />
                         <div class="mb-4">
                             <label for="audioUrl" class="form-label fw-semibold">Audio Episode MP3 URL</label>
                             <input type="url" 
@@ -78,10 +94,218 @@
     </div>
 </div>
 
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">
+                    <i class="bi bi-gear-fill"></i> Azure OpenAI Settings
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle"></i> <small>Override default settings from appsettings.json. Leave fields empty to use defaults.</small>
+                </div>
+                <form id="settingsForm">
+                    <div class="mb-3">
+                        <label for="modalEndpoint" class="form-label">Azure OpenAI Endpoint</label>
+                        <input type="url" class="form-control" id="modalEndpoint" 
+                               placeholder="https://your-resource.openai.azure.com/">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalKey" class="form-label">API Key</label>
+                        <input type="password" class="form-control" id="modalKey" 
+                               placeholder="Your API key">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalWhisperDeployment" class="form-label">Whisper Deployment Name</label>
+                        <input type="text" class="form-control" id="modalWhisperDeployment" 
+                               placeholder="whisper">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalGptDeployment" class="form-label">GPT Deployment Name</label>
+                        <input type="text" class="form-control" id="modalGptDeployment" 
+                               placeholder="gpt-5-2">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalTtsDeployment" class="form-label">TTS Deployment Name</label>
+                        <input type="text" class="form-control" id="modalTtsDeployment" 
+                               placeholder="gpt-4o-mini-tts">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalTtsSpeedRatio" class="form-label">
+                            TTS Speed Ratio: <span id="speedRatioValue">1.00</span>x
+                        </label>
+                        <input type="range" class="form-range" id="modalTtsSpeedRatio" 
+                               min="0.75" max="3.0" step="0.05" value="1.0">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">0.75x (Slower)</small>
+                            <small class="text-muted">3.0x (Faster)</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalTtsResponseFormat" class="form-label">TTS Audio Format</label>
+                        <select class="form-select" id="modalTtsResponseFormat">
+                            <option value="mp3">MP3</option>
+                            <option value="opus">Opus</option>
+                            <option value="aac">AAC</option>
+                            <option value="flac">FLAC</option>
+                            <option value="wav">WAV</option>
+                            <option value="pcm">PCM</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="resetSettingsBtn">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset to Defaults
+                </button>
+                <button type="button" class="btn btn-primary" id="saveSettingsBtn">
+                    <i class="bi bi-check-lg"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         let eventSource = null;
         let latestStatus = null;
+
+        // Settings management
+        const SETTINGS_KEY = 'azureOpenAISettings';
+
+        // Update speed ratio display when slider changes
+        document.getElementById('modalTtsSpeedRatio').addEventListener('input', function(e) {
+            document.getElementById('speedRatioValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+        // Load settings from localStorage on page load
+        function loadSettings() {
+            const savedSettings = localStorage.getItem(SETTINGS_KEY);
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    
+                    // Populate modal fields
+                    document.getElementById('modalEndpoint').value = settings.endpoint || '';
+                    document.getElementById('modalKey').value = settings.key || '';
+                    document.getElementById('modalWhisperDeployment').value = settings.whisperDeployment || '';
+                    document.getElementById('modalGptDeployment').value = settings.gptDeployment || '';
+                    document.getElementById('modalTtsDeployment').value = settings.ttsDeployment || '';
+                    
+                    // TTS settings
+                    if (settings.ttsSpeedRatio) {
+                        document.getElementById('modalTtsSpeedRatio').value = settings.ttsSpeedRatio;
+                        document.getElementById('speedRatioValue').textContent = parseFloat(settings.ttsSpeedRatio).toFixed(2);
+                    }
+                    if (settings.ttsResponseFormat) {
+                        document.getElementById('modalTtsResponseFormat').value = settings.ttsResponseFormat;
+                    }
+                    
+                    // Update hidden form fields
+                    updateHiddenFields(settings);
+                    
+                    // Show custom badge
+                    if (hasCustomSettings(settings)) {
+                        document.getElementById('customSettingsBadge').classList.remove('d-none');
+                    }
+                } catch (error) {
+                    console.error('Error loading settings:', error);
+                }
+            }
+        }
+
+        function hasCustomSettings(settings) {
+            return settings && (
+                settings.endpoint ||
+                settings.key ||
+                settings.whisperDeployment ||
+                settings.gptDeployment ||
+                settings.ttsDeployment ||
+                settings.ttsSpeedRatio ||
+                settings.ttsResponseFormat
+            );
+        }
+
+        function updateHiddenFields(settings) {
+            document.getElementById('settingsEndpoint').value = settings.endpoint || '';
+            document.getElementById('settingsKey').value = settings.key || '';
+            document.getElementById('settingsWhisperDeployment').value = settings.whisperDeployment || '';
+            document.getElementById('settingsGptDeployment').value = settings.gptDeployment || '';
+            document.getElementById('settingsTtsDeployment').value = settings.ttsDeployment || '';
+        }
+
+        // Save settings button
+        document.getElementById('saveSettingsBtn').addEventListener('click', function() {
+            const speedRatio = parseFloat(document.getElementById('modalTtsSpeedRatio').value);
+            const responseFormat = document.getElementById('modalTtsResponseFormat').value;
+            
+            const settings = {
+                endpoint: document.getElementById('modalEndpoint').value.trim(),
+                key: document.getElementById('modalKey').value.trim(),
+                whisperDeployment: document.getElementById('modalWhisperDeployment').value.trim(),
+                gptDeployment: document.getElementById('modalGptDeployment').value.trim(),
+                ttsDeployment: document.getElementById('modalTtsDeployment').value.trim(),
+                ttsSpeedRatio: speedRatio !== 1.0 ? speedRatio : null,
+                ttsResponseFormat: responseFormat !== 'mp3' ? responseFormat : null
+            };
+
+            // Save to localStorage
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            
+            // Update hidden form fields
+            updateHiddenFields(settings);
+            
+            // Show/hide custom badge
+            if (hasCustomSettings(settings)) {
+                document.getElementById('customSettingsBadge').classList.remove('d-none');
+            } else {
+                document.getElementById('customSettingsBadge').classList.add('d-none');
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+            modal.hide();
+            
+            // Show success message
+            alert('Settings saved successfully!');
+        });
+
+        // Reset settings button
+        document.getElementById('resetSettingsBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                // Clear localStorage
+                localStorage.removeItem(SETTINGS_KEY);
+                
+                // Clear modal fields
+                document.getElementById('modalEndpoint').value = '';
+                document.getElementById('modalKey').value = '';
+                document.getElementById('modalWhisperDeployment').value = '';
+                document.getElementById('modalGptDeployment').value = '';
+                document.getElementById('modalTtsDeployment').value = '';
+                document.getElementById('modalTtsSpeedRatio').value = '1.0';
+                document.getElementById('speedRatioValue').textContent = '1.00';
+                document.getElementById('modalTtsResponseFormat').value = 'mp3';
+                
+                // Clear hidden form fields
+                updateHiddenFields({});
+                
+                // Hide custom badge
+                document.getElementById('customSettingsBadge').classList.add('d-none');
+                
+                // Show success message
+                alert('Settings reset to defaults!');
+            }
+        });
+
+        // Load settings when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
 
         document.getElementById('audioForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -111,9 +335,28 @@
             document.getElementById('statusList').innerHTML = '';
             updateProgressBar(0);
 
-            // Connect to SSE endpoint
+            // Connect to SSE endpoint with settings
             const encodedUrl = encodeURIComponent(audioUrl);
-            eventSource = new EventSource(`/Audio/ProcessAndSummarizeStream?audioUrl=${encodedUrl}`);
+            let sseUrl = `/Audio/ProcessAndSummarizeStream?audioUrl=${encodedUrl}`;
+            
+            // Add settings to URL if they exist
+            const savedSettings = localStorage.getItem(SETTINGS_KEY);
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.endpoint) sseUrl += `&settingsEndpoint=${encodeURIComponent(settings.endpoint)}`;
+                    if (settings.key) sseUrl += `&settingsKey=${encodeURIComponent(settings.key)}`;
+                    if (settings.whisperDeployment) sseUrl += `&settingsWhisperDeployment=${encodeURIComponent(settings.whisperDeployment)}`;
+                    if (settings.gptDeployment) sseUrl += `&settingsGptDeployment=${encodeURIComponent(settings.gptDeployment)}`;
+                    if (settings.ttsDeployment) sseUrl += `&settingsTtsDeployment=${encodeURIComponent(settings.ttsDeployment)}`;
+                    if (settings.ttsSpeedRatio) sseUrl += `&settingsTtsSpeedRatio=${settings.ttsSpeedRatio}`;
+                    if (settings.ttsResponseFormat) sseUrl += `&settingsTtsResponseFormat=${encodeURIComponent(settings.ttsResponseFormat)}`;
+                } catch (error) {
+                    console.error('Error parsing settings for SSE:', error);
+                }
+            }
+            
+            eventSource = new EventSource(sseUrl);
 
             eventSource.onmessage = function(event) {
                 try {

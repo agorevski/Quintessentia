@@ -12,6 +12,7 @@ namespace Quintessentia.Services
     {
         private readonly ILogger<AzureOpenAIService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly AzureOpenAIClient _sttClient;
         private readonly AzureOpenAIClient _gptClient;
         private readonly AzureOpenAIClient _ttsClient;
@@ -23,10 +24,11 @@ namespace Quintessentia.Services
         private const long MAX_AUDIO_FILE_SIZE = 5 * 1024 * 1024; // 5MB to leave buffer
         private const int CHUNK_OVERLAP_SECONDS = 1; // Overlap to avoid losing words at boundaries
 
-        public AzureOpenAIService(ILogger<AzureOpenAIService> logger, IConfiguration configuration)
+        public AzureOpenAIService(ILogger<AzureOpenAIService> logger, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
         {
             _logger = logger;
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
 
             // Initialize Speech-to-Text client
             var sttEndpoint = _configuration["AzureOpenAI:Endpoint"]
@@ -57,6 +59,65 @@ namespace Quintessentia.Services
 
             _logger.LogInformation("AzureOpenAIService initialized with deployments - STT: {STT}, GPT: {GPT}, TTS: {TTS}",
                 _sttDeployment, _gptDeployment, _ttsDeployment);
+        }
+
+        private Models.AzureOpenAISettings? GetCustomSettings()
+        {
+            return _httpContextAccessor.HttpContext?.Items["AzureOpenAISettings"] as Models.AzureOpenAISettings;
+        }
+
+        private (AzureOpenAIClient client, string deployment) GetSTTClientAndDeployment()
+        {
+            var customSettings = GetCustomSettings();
+            if (customSettings != null && (customSettings.Endpoint != null || customSettings.Key != null || customSettings.WhisperDeployment != null))
+            {
+                var endpoint = customSettings.Endpoint ?? _configuration["AzureOpenAI:Endpoint"]!;
+                var key = customSettings.Key ?? _configuration["AzureOpenAI:Key"]!;
+                var deployment = customSettings.WhisperDeployment ?? _sttDeployment;
+                
+                _logger.LogInformation("Using custom STT settings - Endpoint: {Endpoint}, Deployment: {Deployment}", 
+                    endpoint, deployment);
+                
+                var client = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
+                return (client, deployment);
+            }
+            return (_sttClient, _sttDeployment);
+        }
+
+        private (AzureOpenAIClient client, string deployment) GetGPTClientAndDeployment()
+        {
+            var customSettings = GetCustomSettings();
+            if (customSettings != null && (customSettings.Endpoint != null || customSettings.Key != null || customSettings.GptDeployment != null))
+            {
+                var endpoint = customSettings.Endpoint ?? _configuration["AzureOpenAI:Endpoint"]!;
+                var key = customSettings.Key ?? _configuration["AzureOpenAI:Key"]!;
+                var deployment = customSettings.GptDeployment ?? _gptDeployment;
+                
+                _logger.LogInformation("Using custom GPT settings - Endpoint: {Endpoint}, Deployment: {Deployment}", 
+                    endpoint, deployment);
+                
+                var client = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
+                return (client, deployment);
+            }
+            return (_gptClient, _gptDeployment);
+        }
+
+        private (AzureOpenAIClient client, string deployment) GetTTSClientAndDeployment()
+        {
+            var customSettings = GetCustomSettings();
+            if (customSettings != null && (customSettings.Endpoint != null || customSettings.Key != null || customSettings.TtsDeployment != null))
+            {
+                var endpoint = customSettings.Endpoint ?? _configuration["AzureOpenAI:Endpoint"]!;
+                var key = customSettings.Key ?? _configuration["AzureOpenAI:Key"]!;
+                var deployment = customSettings.TtsDeployment ?? _ttsDeployment;
+                
+                _logger.LogInformation("Using custom TTS settings - Endpoint: {Endpoint}, Deployment: {Deployment}", 
+                    endpoint, deployment);
+                
+                var client = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
+                return (client, deployment);
+            }
+            return (_ttsClient, _ttsDeployment);
         }
 
         public async Task<string> TranscribeAudioAsync(string audioFilePath)
@@ -94,7 +155,8 @@ namespace Quintessentia.Services
 
         private async Task<string> TranscribeSingleAudioFileAsync(string audioFilePath)
         {
-            var audioClient = _sttClient.GetAudioClient(_sttDeployment);
+            var (client, deployment) = GetSTTClientAndDeployment();
+            var audioClient = client.GetAudioClient(deployment);
 
             using var audioStream = File.OpenRead(audioFilePath);
             var transcriptionOptions = new AudioTranscriptionOptions
@@ -283,7 +345,8 @@ namespace Quintessentia.Services
             {
                 _logger.LogInformation("Starting summarization. Transcript length: {Length} characters", transcript.Length);
 
-                var chatClient = _gptClient.GetChatClient(_gptDeployment);
+                var (client, deployment) = GetGPTClientAndDeployment();
+                var chatClient = client.GetChatClient(deployment);
 
                 // Comprehensive prompt designed to produce a 5-minute summary
                 var systemPrompt = @"You are an expert audio summarizer specializing in creating concise, engaging audio summaries. Your summaries are designed to be read aloud and should sound natural when spoken.
@@ -381,12 +444,38 @@ Provide the compressed version:";
             {
                 _logger.LogInformation("Starting text-to-speech generation. Text length: {Length} characters", text.Length);
 
-                var audioClient = _ttsClient.GetAudioClient(_ttsDeployment);
+                var (client, deployment) = GetTTSClientAndDeployment();
+                var audioClient = client.GetAudioClient(deployment);
+
+                // Get TTS configuration settings with override support
+                var customSettings = GetCustomSettings();
+                
+                // Speed ratio: check custom settings, then configuration, then default to 1.0
+                var speedRatio = customSettings?.TtsSpeedRatio 
+                    ?? float.Parse(_configuration["AzureOpenAI:TextToSpeech:SpeedRatio"] ?? "1.0");
+                
+                // Response format: check custom settings, then configuration, then default to mp3
+                var responseFormatString = customSettings?.TtsResponseFormat 
+                    ?? _configuration["AzureOpenAI:TextToSpeech:ResponseFormat"] ?? "mp3";
+                
+                var responseFormat = responseFormatString.ToLowerInvariant() switch
+                {
+                    "mp3" => GeneratedSpeechFormat.Mp3,
+                    "opus" => GeneratedSpeechFormat.Opus,
+                    "aac" => GeneratedSpeechFormat.Aac,
+                    "flac" => GeneratedSpeechFormat.Flac,
+                    "wav" => GeneratedSpeechFormat.Wav,
+                    "pcm" => GeneratedSpeechFormat.Pcm,
+                    _ => GeneratedSpeechFormat.Mp3
+                };
+
+                _logger.LogInformation("Using TTS settings - SpeedRatio: {SpeedRatio}, Format: {Format}", 
+                    speedRatio, responseFormatString);
 
                 var generateOptions = new SpeechGenerationOptions
                 {
-                    ResponseFormat = GeneratedSpeechFormat.Mp3,
-                    SpeedRatio = 1.0f
+                    ResponseFormat = responseFormat,
+                    SpeedRatio = speedRatio
                 };
 
                 var result = await audioClient.GenerateSpeechAsync(text, GeneratedSpeechVoice.Alloy, generateOptions);

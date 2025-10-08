@@ -132,7 +132,15 @@ namespace Quintessentia.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ProcessAndSummarize(string audioUrl)
+        public async Task<IActionResult> ProcessAndSummarize(
+            string audioUrl,
+            string? settingsEndpoint = null,
+            string? settingsKey = null,
+            string? settingsWhisperDeployment = null,
+            string? settingsGptDeployment = null,
+            string? settingsTtsDeployment = null,
+            float? settingsTtsSpeedRatio = null,
+            string? settingsTtsResponseFormat = null)
         {
             var stopwatch = Stopwatch.StartNew();
             
@@ -141,6 +149,29 @@ namespace Quintessentia.Controllers
                 if (string.IsNullOrWhiteSpace(audioUrl))
                 {
                     return BadRequest("MP3 URL is required.");
+                }
+
+                // Create settings object if any overrides are provided
+                AzureOpenAISettings? customSettings = null;
+                if (!string.IsNullOrWhiteSpace(settingsEndpoint) ||
+                    !string.IsNullOrWhiteSpace(settingsKey) ||
+                    !string.IsNullOrWhiteSpace(settingsWhisperDeployment) ||
+                    !string.IsNullOrWhiteSpace(settingsGptDeployment) ||
+                    !string.IsNullOrWhiteSpace(settingsTtsDeployment) ||
+                    settingsTtsSpeedRatio.HasValue ||
+                    !string.IsNullOrWhiteSpace(settingsTtsResponseFormat))
+                {
+                    customSettings = new AzureOpenAISettings
+                    {
+                        Endpoint = settingsEndpoint,
+                        Key = settingsKey,
+                        WhisperDeployment = settingsWhisperDeployment,
+                        GptDeployment = settingsGptDeployment,
+                        TtsDeployment = settingsTtsDeployment,
+                        TtsSpeedRatio = settingsTtsSpeedRatio,
+                        TtsResponseFormat = settingsTtsResponseFormat
+                    };
+                    _logger.LogInformation("Using custom Azure OpenAI settings for this request");
                 }
 
                 // Validate URL format
@@ -163,6 +194,12 @@ namespace Quintessentia.Controllers
                 if (string.IsNullOrEmpty(episodePath))
                 {
                     return BadRequest("Failed to download or retrieve episode.");
+                }
+
+                // Store custom settings in HttpContext for services to access
+                if (customSettings != null)
+                {
+                    HttpContext.Items["AzureOpenAISettings"] = customSettings;
                 }
 
                 // Process through AI pipeline (transcription, summarization, TTS)
@@ -343,7 +380,15 @@ namespace Quintessentia.Controllers
         }
 
         [HttpGet]
-        public async Task ProcessAndSummarizeStream(string audioUrl)
+        public async Task ProcessAndSummarizeStream(
+            string audioUrl,
+            string? settingsEndpoint = null,
+            string? settingsKey = null,
+            string? settingsWhisperDeployment = null,
+            string? settingsGptDeployment = null,
+            string? settingsTtsDeployment = null,
+            float? settingsTtsSpeedRatio = null,
+            string? settingsTtsResponseFormat = null)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
@@ -363,6 +408,29 @@ namespace Quintessentia.Controllers
                         ErrorMessage = "MP3 URL is required"
                     });
                     return;
+                }
+
+                // Create settings object if any overrides are provided
+                AzureOpenAISettings? customSettings = null;
+                if (!string.IsNullOrWhiteSpace(settingsEndpoint) ||
+                    !string.IsNullOrWhiteSpace(settingsKey) ||
+                    !string.IsNullOrWhiteSpace(settingsWhisperDeployment) ||
+                    !string.IsNullOrWhiteSpace(settingsGptDeployment) ||
+                    !string.IsNullOrWhiteSpace(settingsTtsDeployment) ||
+                    settingsTtsSpeedRatio.HasValue ||
+                    !string.IsNullOrWhiteSpace(settingsTtsResponseFormat))
+                {
+                    customSettings = new AzureOpenAISettings
+                    {
+                        Endpoint = settingsEndpoint,
+                        Key = settingsKey,
+                        WhisperDeployment = settingsWhisperDeployment,
+                        GptDeployment = settingsGptDeployment,
+                        TtsDeployment = settingsTtsDeployment,
+                        TtsSpeedRatio = settingsTtsSpeedRatio,
+                        TtsResponseFormat = settingsTtsResponseFormat
+                    };
+                    _logger.LogInformation("Using custom Azure OpenAI settings for streaming request");
                 }
 
                 // Validate URL format
@@ -420,6 +488,12 @@ namespace Quintessentia.Controllers
                     FilePath = episodePath,
                     WasCached = wasCached
                 });
+
+                // Store custom settings in HttpContext for services to access
+                if (customSettings != null)
+                {
+                    HttpContext.Items["AzureOpenAISettings"] = customSettings;
+                }
 
                 // Process through AI pipeline with progress updates
                 _logger.LogInformation("Starting AI processing pipeline for episode: {CacheKey}", cacheKey);
