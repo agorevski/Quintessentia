@@ -22,7 +22,7 @@ This guide provides step-by-step instructions for deploying the SpotifySummarize
 - **Type**: StorageV2 (general purpose v2)
 - **Replication**: LRS (Locally Redundant Storage) recommended for development
 - **Required Containers** (will be auto-created by the application):
-  - `episodes` - Stores downloaded podcast episodes
+  - `episodes` - Stores downloaded audio episodes
   - `transcripts` - Stores transcript text files
   - `summaries` - Stores summary text and audio files
 
@@ -194,7 +194,7 @@ Update your local `appsettings.json` or `appsettings.Development.json`:
 
 ```bash
 # Login to Azure
-az login
+az login --tenant 8a106375-957e-4690-978b-a81220e49845
 
 # Build the application
 dotnet publish -c Release
@@ -269,7 +269,7 @@ The database will be automatically initialized on first application start in Dev
 1. **Navigate to your Web App URL**: `https://quintessentia-server.azurewebsites.net`
 
 2. **Test the application**:
-   - Upload a podcast episode URL
+   - Upload an audio episode URL
    - Verify files are stored in Azure Blob Storage
    - Check that database records are created
    - Download episodes and summaries
@@ -282,7 +282,7 @@ The database will be automatically initialized on first application start in Dev
 
 ### Data Flow
 
-1. **User submits podcast URL** → Controller receives request
+1. **User submits audio URL** → Controller receives request
 2. **Controller generates cache key** from URL (SHA256 hash)
 3. **Check database** for existing episode
 4. **If not cached**:

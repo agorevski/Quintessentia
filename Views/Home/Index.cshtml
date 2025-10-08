@@ -9,21 +9,21 @@
                 <h1 class="display-3 fw-bold text-primary mb-3">
                     <i class="bi bi-droplet"></i> Quintessentia
                 </h1>
-                <p class="lead text-muted">Distilling podcasts down to their pure essence</p>
+                <p class="lead text-muted">Distilling audio down to its pure essence</p>
             </div>
 
             <div class="card shadow-lg border-0">
                 <div class="card-body p-5">
-                    <form id="podcastForm" asp-controller="Podcast" asp-action="ProcessAndSummarize" method="post">
+                    <form id="audioForm" asp-controller="Audio" asp-action="ProcessAndSummarize" method="post">
                         <div class="mb-4">
-                            <label for="spotifyUrl" class="form-label fw-semibold">Podcast Episode MP3 URL</label>
+                            <label for="audioUrl" class="form-label fw-semibold">Audio Episode MP3 URL</label>
                             <input type="url" 
                                    class="form-control form-control-lg" 
-                                   id="spotifyUrl" 
-                                   name="spotifyUrl" 
-                                   placeholder="https://example.com/podcast-episode.mp3" 
+                                   id="audioUrl" 
+                                   name="audioUrl" 
+                                   placeholder="https://example.com/audio-episode.mp3" 
                                    required>
-                            <div class="form-text">Paste a direct URL to an MP3 podcast episode file</div>
+                            <div class="form-text">Paste a direct URL to an MP3 audio file</div>
                         </div>
 
                         <div class="alert alert-info mb-4" role="alert">
@@ -74,7 +74,7 @@
 
             <div class="text-center mt-4">
                 <small class="text-muted">
-                    <i class="bi bi-info-circle"></i> Enter a direct MP3 URL to download and cache the podcast episode
+                    <i class="bi bi-info-circle"></i> Enter a direct MP3 URL to download and cache the audio episode
                 </small>
             </div>
         </div>
@@ -86,12 +86,12 @@
         let eventSource = null;
         let latestStatus = null;
 
-        document.getElementById('podcastForm').addEventListener('submit', function(e) {
+        document.getElementById('audioForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const spotifyUrl = document.getElementById('spotifyUrl').value;
-            if (!spotifyUrl) {
-                alert('Please enter a podcast URL');
+            const audioUrl = document.getElementById('audioUrl').value;
+            if (!audioUrl) {
+                alert('Please enter an audio URL');
                 return;
             }
 
@@ -100,7 +100,7 @@
             const buttonText = document.getElementById('buttonText');
             const buttonSpinner = document.getElementById('buttonSpinner');
             const downloadButton = document.getElementById('downloadOnlyButton');
-            const urlInput = document.getElementById('spotifyUrl');
+            const urlInput = document.getElementById('audioUrl');
             
             button.disabled = true;
             downloadButton.disabled = true;
@@ -117,8 +117,8 @@
             updateProgressBar(0);
 
             // Connect to SSE endpoint
-            const encodedUrl = encodeURIComponent(spotifyUrl);
-            eventSource = new EventSource(`/Podcast/ProcessAndSummarizeStream?spotifyUrl=${encodedUrl}`);
+            const encodedUrl = encodeURIComponent(audioUrl);
+            eventSource = new EventSource(`/Audio/ProcessAndSummarizeStream?audioUrl=${encodedUrl}`);
 
             eventSource.onmessage = function(event) {
                 try {
@@ -133,7 +133,7 @@
                         if (status.isComplete) {
                             // Redirect to result page with query parameters
                             setTimeout(() => {
-                                window.location.href = `/Podcast/Result?episodeId=${encodeURIComponent(status.episodeId)}`;
+                                window.location.href = `/Audio/Result?episodeId=${encodeURIComponent(status.episodeId)}`;
                             }, 1000);
                         } else {
                             // Show error
@@ -165,7 +165,7 @@
         });
 
         document.getElementById('downloadOnlyButton').addEventListener('click', function(e) {
-            const form = document.getElementById('podcastForm');
+            const form = document.getElementById('audioForm');
             const originalAction = form.action;
             
             // Change form action to the download-only endpoint

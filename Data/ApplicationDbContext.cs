@@ -10,15 +10,15 @@ namespace SpotifySummarizer.Data
         {
         }
 
-        public DbSet<PodcastEpisode> PodcastEpisodes { get; set; }
-        public DbSet<PodcastSummary> PodcastSummaries { get; set; }
+        public DbSet<AudioEpisode> AudioEpisodes { get; set; }
+        public DbSet<AudioSummary> AudioSummaries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure PodcastEpisode
-            modelBuilder.Entity<PodcastEpisode>(entity =>
+            // Configure AudioEpisode
+            modelBuilder.Entity<AudioEpisode>(entity =>
             {
                 entity.ToTable("PodcastEpisodes");
 
@@ -31,12 +31,12 @@ namespace SpotifySummarizer.Data
 
                 entity.HasOne(e => e.Summary)
                     .WithOne(s => s.Episode)
-                    .HasForeignKey<PodcastSummary>(s => s.EpisodeId)
+                    .HasForeignKey<AudioSummary>(s => s.EpisodeId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configure PodcastSummary
-            modelBuilder.Entity<PodcastSummary>(entity =>
+            // Configure AudioSummary
+            modelBuilder.Entity<AudioSummary>(entity =>
             {
                 entity.ToTable("PodcastSummaries");
 

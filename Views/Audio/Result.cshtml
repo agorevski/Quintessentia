@@ -1,4 +1,4 @@
-@model SpotifySummarizer.Models.PodcastProcessResult
+@model SpotifySummarizer.Models.AudioProcessResult
 
 @{
     ViewData["Title"] = "Processing Result";
@@ -99,12 +99,12 @@
                         <div class="d-grid gap-2">
                             @if (!string.IsNullOrEmpty(Model.SummaryAudioPath))
                             {
-                                <a asp-controller="Podcast" asp-action="DownloadSummary" asp-route-episodeId="@Model.EpisodeId" 
+                                <a asp-controller="Audio" asp-action="DownloadSummary" asp-route-episodeId="@Model.EpisodeId" 
                                    class="btn btn-primary btn-lg">
                                     <i class="bi bi-download"></i> Download Summary (5-min)
                                 </a>
                             }
-                            <a asp-controller="Podcast" asp-action="Download" asp-route-episodeId="@Model.EpisodeId" 
+                            <a asp-controller="Audio" asp-action="Download" asp-route-episodeId="@Model.EpisodeId" 
                                class="btn btn-outline-primary btn-lg">
                                 <i class="bi bi-download"></i> Download Original Episode
                             </a>

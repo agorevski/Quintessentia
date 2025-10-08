@@ -10,7 +10,7 @@ namespace SpotifySummarizer.Services
         Task<string> TranscribeAudioAsync(string audioFilePath);
 
         /// <summary>
-        /// Summarizes a podcast transcript to approximately 5 minutes worth of content
+        /// Summarizes an audio transcript to approximately 5 minutes worth of content
         /// </summary>
         /// <param name="transcript">The full transcript to summarize</param>
         /// <returns>Summarized text optimized for speech (target ~750 words)</returns>

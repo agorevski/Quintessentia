@@ -9,22 +9,22 @@ using System.Text;
 
 namespace SpotifySummarizer.Controllers
 {
-    public class PodcastController : Controller
+    public class AudioController : Controller
     {
-        private readonly IPodcastService _podcastService;
+        private readonly IAudioService _audioService;
         private readonly IBlobStorageService _blobStorageService;
         private readonly ApplicationDbContext _dbContext;
-        private readonly ILogger<PodcastController> _logger;
+        private readonly ILogger<AudioController> _logger;
         private readonly IConfiguration _configuration;
 
-        public PodcastController(
-            IPodcastService podcastService,
+        public AudioController(
+            IAudioService audioService,
             IBlobStorageService blobStorageService,
             ApplicationDbContext dbContext,
-            ILogger<PodcastController> logger,
+            ILogger<AudioController> logger,
             IConfiguration configuration)
         {
-            _podcastService = podcastService;
+            _audioService = audioService;
             _blobStorageService = blobStorageService;
             _dbContext = dbContext;
             _logger = logger;
@@ -37,30 +37,30 @@ namespace SpotifySummarizer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Process(string spotifyUrl)
+        public async Task<IActionResult> Process(string audioUrl)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(spotifyUrl))
+                if (string.IsNullOrWhiteSpace(audioUrl))
                 {
                     return BadRequest("MP3 URL is required.");
                 }
 
                 // Validate URL format
-                if (!Uri.TryCreate(spotifyUrl, UriKind.Absolute, out var uri) || 
+                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) || 
                     (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 {
                     return BadRequest("Invalid URL format. Please provide a valid HTTP or HTTPS URL.");
                 }
 
                 // Generate cache key from URL
-                var cacheKey = GenerateCacheKey(spotifyUrl);
+                var cacheKey = GenerateCacheKey(audioUrl);
 
                 // Check if already cached before attempting download
-                var wasCached = _podcastService.IsEpisodeCached(cacheKey);
+                var wasCached = _audioService.IsEpisodeCached(cacheKey);
 
                 // Download or retrieve cached episode (pass the full URL as the "episodeId")
-                var episodePath = await _podcastService.GetOrDownloadEpisodeAsync(spotifyUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -68,7 +68,7 @@ namespace SpotifySummarizer.Controllers
                 }
 
                 // Return success with the cached file path
-                var result = new PodcastProcessResult
+                var result = new AudioProcessResult
                 {
                     Success = true,
                     Message = wasCached ? "Episode retrieved from cache" : "Episode downloaded successfully",
@@ -81,12 +81,12 @@ namespace SpotifySummarizer.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP error downloading podcast from URL: {Url}", spotifyUrl);
-                return View("Error", new ErrorViewModel { Message = "Failed to download the podcast. Please check the URL and try again." });
+                _logger.LogError(ex, "HTTP error downloading audio from URL: {Url}", audioUrl);
+                return View("Error", new ErrorViewModel { Message = "Failed to download the audio. Please check the URL and try again." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing podcast URL: {Url}", spotifyUrl);
+                _logger.LogError(ex, "Error processing audio URL: {Url}", audioUrl);
                 return View("Error", new ErrorViewModel { Message = "An error occurred while processing your request." });
             }
         }
@@ -99,7 +99,7 @@ namespace SpotifySummarizer.Controllers
                 var cacheKey = GenerateCacheKey(episodeId);
                 
                 // Check if episode exists in database
-                var episode = await _dbContext.PodcastEpisodes
+                var episode = await _dbContext.AudioEpisodes
                     .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
                 
                 if (episode == null)
@@ -131,33 +131,33 @@ namespace SpotifySummarizer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ProcessAndSummarize(string spotifyUrl)
+        public async Task<IActionResult> ProcessAndSummarize(string audioUrl)
         {
             var stopwatch = Stopwatch.StartNew();
             
             try
             {
-                if (string.IsNullOrWhiteSpace(spotifyUrl))
+                if (string.IsNullOrWhiteSpace(audioUrl))
                 {
                     return BadRequest("MP3 URL is required.");
                 }
 
                 // Validate URL format
-                if (!Uri.TryCreate(spotifyUrl, UriKind.Absolute, out var uri) || 
+                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) || 
                     (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 {
                     return BadRequest("Invalid URL format. Please provide a valid HTTP or HTTPS URL.");
                 }
 
                 // Generate cache key from URL
-                var cacheKey = GenerateCacheKey(spotifyUrl);
+                var cacheKey = GenerateCacheKey(audioUrl);
 
                 // Check if already cached before attempting download
-                var wasCached = _podcastService.IsEpisodeCached(cacheKey);
-                var summaryWasCached = _podcastService.IsSummaryCached(cacheKey);
+                var wasCached = _audioService.IsEpisodeCached(cacheKey);
+                var summaryWasCached = _audioService.IsSummaryCached(cacheKey);
 
                 // Download or retrieve cached episode (pass the full URL as the "episodeId")
-                var episodePath = await _podcastService.GetOrDownloadEpisodeAsync(spotifyUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -166,7 +166,7 @@ namespace SpotifySummarizer.Controllers
 
                 // Process through AI pipeline (transcription, summarization, TTS)
                 _logger.LogInformation("Starting AI processing pipeline for episode: {CacheKey}", cacheKey);
-                var summaryAudioPath = await _podcastService.ProcessAndSummarizeEpisodeAsync(cacheKey);
+                var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey);
 
                 stopwatch.Stop();
 
@@ -191,7 +191,7 @@ namespace SpotifySummarizer.Controllers
                 }
 
                 // Return success with comprehensive result
-                var result = new PodcastProcessResult
+                var result = new AudioProcessResult
                 {
                     Success = true,
                     Message = summaryWasCached ? "Summary retrieved from cache" : "Episode processed and summarized successfully",
@@ -211,12 +211,12 @@ namespace SpotifySummarizer.Controllers
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP error downloading podcast from URL: {Url}", spotifyUrl);
-                return View("Error", new ErrorViewModel { Message = "Failed to download the podcast. Please check the URL and try again." });
+                _logger.LogError(ex, "HTTP error downloading audio from URL: {Url}", audioUrl);
+                return View("Error", new ErrorViewModel { Message = "Failed to download the audio. Please check the URL and try again." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing podcast URL: {Url}", spotifyUrl);
+                _logger.LogError(ex, "Error processing audio URL: {Url}", audioUrl);
                 return View("Error", new ErrorViewModel { Message = $"An error occurred while processing your request: {ex.Message}" });
             }
         }
@@ -232,14 +232,14 @@ namespace SpotifySummarizer.Controllers
                 }
 
                 // Get episode path
-                var episodePath = _podcastService.GetCachedEpisodePath(episodeId);
+                var episodePath = _audioService.GetCachedEpisodePath(episodeId);
                 if (!System.IO.File.Exists(episodePath))
                 {
                     return NotFound("Episode not found.");
                 }
 
                 // Check if summary exists
-                var summaryPath = _podcastService.GetSummaryPath(episodeId);
+                var summaryPath = _audioService.GetSummaryPath(episodeId);
                 var hasSummary = System.IO.File.Exists(summaryPath);
 
                 // Load transcript and summary text for display
@@ -263,7 +263,7 @@ namespace SpotifySummarizer.Controllers
                 }
 
                 // Build result model
-                var result = new PodcastProcessResult
+                var result = new AudioProcessResult
                 {
                     Success = true,
                     Message = "Episode processed successfully",
@@ -295,7 +295,7 @@ namespace SpotifySummarizer.Controllers
                 var cacheKey = GenerateCacheKey(episodeId);
                 
                 // Check if summary exists in database
-                var episode = await _dbContext.PodcastEpisodes
+                var episode = await _dbContext.AudioEpisodes
                     .Include(e => e.Summary)
                     .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
                 
@@ -328,7 +328,7 @@ namespace SpotifySummarizer.Controllers
         }
 
         [HttpGet]
-        public async Task ProcessAndSummarizeStream(string spotifyUrl)
+        public async Task ProcessAndSummarizeStream(string audioUrl)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
@@ -338,7 +338,7 @@ namespace SpotifySummarizer.Controllers
 
             try
             {
-                if (string.IsNullOrWhiteSpace(spotifyUrl))
+                if (string.IsNullOrWhiteSpace(audioUrl))
                 {
                     await SendStatusUpdate(new ProcessingStatus
                     {
@@ -351,7 +351,7 @@ namespace SpotifySummarizer.Controllers
                 }
 
                 // Validate URL format
-                if (!Uri.TryCreate(spotifyUrl, UriKind.Absolute, out var uri) || 
+                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) || 
                     (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 {
                     await SendStatusUpdate(new ProcessingStatus
@@ -365,11 +365,11 @@ namespace SpotifySummarizer.Controllers
                 }
 
                 // Generate cache key from URL
-                var cacheKey = GenerateCacheKey(spotifyUrl);
+                var cacheKey = GenerateCacheKey(audioUrl);
 
                 // Check if already cached
-                var wasCached = _podcastService.IsEpisodeCached(cacheKey);
-                var summaryWasCached = _podcastService.IsSummaryCached(cacheKey);
+                var wasCached = _audioService.IsEpisodeCached(cacheKey);
+                var summaryWasCached = _audioService.IsSummaryCached(cacheKey);
 
                 // Send initial status
                 await SendStatusUpdate(new ProcessingStatus
@@ -382,7 +382,7 @@ namespace SpotifySummarizer.Controllers
                 });
 
                 // Download or retrieve cached episode
-                var episodePath = await _podcastService.GetOrDownloadEpisodeAsync(spotifyUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -409,7 +409,7 @@ namespace SpotifySummarizer.Controllers
                 // Process through AI pipeline with progress updates
                 _logger.LogInformation("Starting AI processing pipeline for episode: {CacheKey}", cacheKey);
                 
-                var summaryAudioPath = await _podcastService.ProcessAndSummarizeEpisodeAsync(cacheKey, async (status) =>
+                var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey, async (status) =>
                 {
                     await SendStatusUpdate(status);
                 });

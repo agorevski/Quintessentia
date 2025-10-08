@@ -2,7 +2,7 @@ using SpotifySummarizer.Models;
 
 namespace SpotifySummarizer.Services
 {
-    public interface IPodcastService
+    public interface IAudioService
     {
         Task<string> GetOrDownloadEpisodeAsync(string episodeId);
         bool IsEpisodeCached(string episodeId);
@@ -10,14 +10,14 @@ namespace SpotifySummarizer.Services
         string GetCachedEpisodePath(string episodeId);
 
         /// <summary>
-        /// Processes a podcast episode through the full AI pipeline: transcription, summarization, and TTS
+        /// Processes an audio episode through the full AI pipeline: transcription, summarization, and TTS
         /// </summary>
         /// <param name="episodeId">The episode ID or cache key</param>
         /// <returns>Path to the generated summary MP3 file</returns>
         Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId);
 
         /// <summary>
-        /// Processes a podcast episode through the full AI pipeline with progress updates
+        /// Processes an audio episode through the full AI pipeline with progress updates
         /// </summary>
         /// <param name="episodeId">The episode ID or cache key</param>
         /// <param name="progressCallback">Callback to report progress updates</param>

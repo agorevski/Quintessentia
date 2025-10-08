@@ -32,7 +32,7 @@ body {
   text-align: start;
 }
 
-/* Custom Spotify Summarizer Styles */
+/* Custom Audio Summarizer Styles */
 .card {
   border-radius: 15px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -79,9 +79,6 @@ body {
   color: #1DB954 !important;
 }
 
-.bi-spotify {
-  color: #1DB954;
-}
 
 .min-vh-100 {
   min-height: 100vh;

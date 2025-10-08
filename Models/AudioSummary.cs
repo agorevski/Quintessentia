@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpotifySummarizer.Models
 {
-    public class PodcastSummary
+    public class AudioSummary
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -29,6 +29,6 @@ namespace SpotifySummarizer.Models
 
         // Navigation property
         [ForeignKey(nameof(EpisodeId))]
-        public PodcastEpisode Episode { get; set; } = null!;
+        public AudioEpisode Episode { get; set; } = null!;
     }
 }

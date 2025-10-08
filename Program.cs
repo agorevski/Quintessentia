@@ -1,8 +1,17 @@
+using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using SpotifySummarizer.Data;
 using SpotifySummarizer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Azure Key Vault
+var keyVaultName = "quintessentia";
+var keyVaultUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+
+builder.Configuration.AddAzureKeyVault(
+    keyVaultUri,
+    new DefaultAzureCredential());
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -16,7 +25,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
 
 // Add application services
-builder.Services.AddScoped<IPodcastService, PodcastService>();
+builder.Services.AddScoped<IAudioService, AudioService>();
 builder.Services.AddScoped<IAzureOpenAIService, AzureOpenAIService>();
 
 var app = builder.Build();

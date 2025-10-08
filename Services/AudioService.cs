@@ -4,9 +4,9 @@ using SpotifySummarizer.Models;
 
 namespace SpotifySummarizer.Services
 {
-    public class PodcastService : IPodcastService
+    public class AudioService : IAudioService
     {
-        private readonly ILogger<PodcastService> _logger;
+        private readonly ILogger<AudioService> _logger;
         private readonly HttpClient _httpClient;
         private readonly IAzureOpenAIService _azureOpenAIService;
         private readonly IBlobStorageService _blobStorageService;
@@ -14,8 +14,8 @@ namespace SpotifySummarizer.Services
         private readonly IConfiguration _configuration;
         private readonly string _tempDirectory;
 
-        public PodcastService(
-            ILogger<PodcastService> logger,
+        public AudioService(
+            ILogger<AudioService> logger,
             IHttpClientFactory httpClientFactory,
             IAzureOpenAIService azureOpenAIService,
             IBlobStorageService blobStorageService,
@@ -50,7 +50,7 @@ namespace SpotifySummarizer.Services
             var cacheKey = GenerateCacheKeyFromUrl(episodeId);
 
             // Check if episode is already in database and blob storage
-            var episode = await _dbContext.PodcastEpisodes
+            var episode = await _dbContext.AudioEpisodes
                 .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
 
             if (episode != null)
@@ -72,7 +72,7 @@ namespace SpotifySummarizer.Services
                 {
                     _logger.LogWarning("Episode in database but blob missing, will re-download: {CacheKey}", cacheKey);
                     // Remove stale database entry
-                    _dbContext.PodcastEpisodes.Remove(episode);
+                    _dbContext.AudioEpisodes.Remove(episode);
                     await _dbContext.SaveChangesAsync();
                 }
             }
@@ -85,7 +85,7 @@ namespace SpotifySummarizer.Services
         public bool IsEpisodeCached(string episodeId)
         {
             var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-            var episode = _dbContext.PodcastEpisodes
+            var episode = _dbContext.AudioEpisodes
                 .FirstOrDefault(e => e.CacheKey == cacheKey);
 
             if (episode == null)
@@ -120,7 +120,7 @@ namespace SpotifySummarizer.Services
                 var fileInfo = new FileInfo(tempPath);
 
                 // Save metadata to database
-                var episode = new PodcastEpisode
+                var episode = new AudioEpisode
                 {
                     CacheKey = cacheKey,
                     OriginalUrl = url,
@@ -129,7 +129,7 @@ namespace SpotifySummarizer.Services
                     DownloadDate = DateTime.UtcNow
                 };
 
-                _dbContext.PodcastEpisodes.Add(episode);
+                _dbContext.AudioEpisodes.Add(episode);
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogInformation("Successfully downloaded and cached episode: {CacheKey}", cacheKey);
@@ -217,7 +217,7 @@ namespace SpotifySummarizer.Services
                 _logger.LogInformation("Starting full AI processing pipeline for episode: {CacheKey}", cacheKey);
 
                 // Check if summary is already in database
-                var episode = await _dbContext.PodcastEpisodes
+                var episode = await _dbContext.AudioEpisodes
                     .Include(e => e.Summary)
                     .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
 
@@ -351,7 +351,7 @@ namespace SpotifySummarizer.Services
                     throw new InvalidOperationException($"Episode not found in database: {cacheKey}");
                 }
 
-                var podcastSummary = new PodcastSummary
+                var audioSummary = new AudioSummary
                 {
                     EpisodeId = episode.Id,
                     TranscriptBlobPath = $"{transcriptsContainer}/{transcriptBlobName}",
@@ -362,7 +362,7 @@ namespace SpotifySummarizer.Services
                     ProcessedDate = DateTime.UtcNow
                 };
 
-                _dbContext.PodcastSummaries.Add(podcastSummary);
+                _dbContext.AudioSummaries.Add(audioSummary);
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogInformation("Full AI processing pipeline completed successfully. Summary audio at: {SummaryAudioPath}", tempSummaryAudioPath);
@@ -409,7 +409,7 @@ namespace SpotifySummarizer.Services
         public bool IsSummaryCached(string episodeId)
         {
             var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-            var episode = _dbContext.PodcastEpisodes
+            var episode = _dbContext.AudioEpisodes
                 .Include(e => e.Summary)
                 .FirstOrDefault(e => e.CacheKey == cacheKey);
 
@@ -422,7 +422,7 @@ namespace SpotifySummarizer.Services
 
         private string GetTempFilePath(string cacheKey, string suffix)
         {
-            return Path.Combine(_tempDirectory, $"podcast_{cacheKey}{suffix}");
+            return Path.Combine(_tempDirectory, $"audio_{cacheKey}{suffix}");
         }
     }
 }
