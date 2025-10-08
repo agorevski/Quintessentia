@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Quintessentia.Data;
 using Quintessentia.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,54 +7,17 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
-// Add DbContext with SQL Server
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 // Add Azure Blob Storage Service as Singleton
 builder.Services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
+
+// Add Blob Metadata Service
+builder.Services.AddSingleton<IBlobMetadataService, BlobMetadataService>();
 
 // Add application services
 builder.Services.AddScoped<IAudioService, AudioService>();
 builder.Services.AddScoped<IAzureOpenAIService, AzureOpenAIService>();
 
 var app = builder.Build();
-
-// Apply database migrations
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    try
-    {
-        // Check if database exists and is accessible
-        if (dbContext.Database.CanConnect())
-        {
-            app.Logger.LogInformation("Database connection successful");
-            
-            // Apply pending migrations
-            var pendingMigrations = dbContext.Database.GetPendingMigrations().ToList();
-            if (pendingMigrations.Any())
-            {
-                app.Logger.LogInformation($"Applying {pendingMigrations.Count} pending migrations...");
-                dbContext.Database.Migrate();
-                app.Logger.LogInformation("Database migrations applied successfully");
-            }
-            else
-            {
-                app.Logger.LogInformation("Database is up to date, no migrations needed");
-            }
-        }
-        else
-        {
-            app.Logger.LogWarning("Cannot connect to database. Migrations will be skipped.");
-        }
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Error during database initialization. The application will start but database operations may fail.");
-        // Don't crash the app - let it start and show errors when database is actually needed
-    }
-}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

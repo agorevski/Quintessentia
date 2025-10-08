@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Quintessentia.Data;
 using Quintessentia.Models;
 
 namespace Quintessentia.Services
@@ -10,7 +8,7 @@ namespace Quintessentia.Services
         private readonly HttpClient _httpClient;
         private readonly IAzureOpenAIService _azureOpenAIService;
         private readonly IBlobStorageService _blobStorageService;
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IBlobMetadataService _metadataService;
         private readonly IConfiguration _configuration;
         private readonly string _tempDirectory;
 
@@ -19,14 +17,14 @@ namespace Quintessentia.Services
             IHttpClientFactory httpClientFactory,
             IAzureOpenAIService azureOpenAIService,
             IBlobStorageService blobStorageService,
-            ApplicationDbContext dbContext,
+            IBlobMetadataService metadataService,
             IConfiguration configuration)
         {
             _logger = logger;
             _httpClient = httpClientFactory.CreateClient();
             _azureOpenAIService = azureOpenAIService;
             _blobStorageService = blobStorageService;
-            _dbContext = dbContext;
+            _metadataService = metadataService;
             _configuration = configuration;
 
             // Use system temp directory for processing
@@ -49,32 +47,17 @@ namespace Quintessentia.Services
             // Generate cache key from URL if it's a URL, otherwise use as-is
             var cacheKey = GenerateCacheKeyFromUrl(episodeId);
 
-            // Check if episode is already in database and blob storage
-            var episode = await _dbContext.AudioEpisodes
-                .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
-
-            if (episode != null)
+            // Check if episode exists in blob storage
+            if (await _metadataService.EpisodeExistsAsync(cacheKey))
             {
+                _logger.LogInformation("Episode found in cache: {CacheKey}", cacheKey);
+
+                // Download to temp file for processing
                 var containerName = GetContainerName("Episodes");
-                var blobExists = await _blobStorageService.ExistsAsync(containerName, $"{cacheKey}.mp3");
+                var tempPath = GetTempFilePath(cacheKey, ".mp3");
+                await _blobStorageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath);
 
-                if (blobExists)
-                {
-                    _logger.LogInformation("Episode found in cache: {CacheKey}", cacheKey);
-
-                    // Download to temp file for processing
-                    var tempPath = GetTempFilePath(cacheKey, ".mp3");
-                    await _blobStorageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath);
-
-                    return tempPath;
-                }
-                else
-                {
-                    _logger.LogWarning("Episode in database but blob missing, will re-download: {CacheKey}", cacheKey);
-                    // Remove stale database entry
-                    _dbContext.AudioEpisodes.Remove(episode);
-                    await _dbContext.SaveChangesAsync();
-                }
+                return tempPath;
             }
 
             // Download the episode - episodeId is the URL here
@@ -85,14 +68,7 @@ namespace Quintessentia.Services
         public bool IsEpisodeCached(string episodeId)
         {
             var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-            var episode = _dbContext.AudioEpisodes
-                .FirstOrDefault(e => e.CacheKey == cacheKey);
-
-            if (episode == null)
-                return false;
-
-            var containerName = GetContainerName("Episodes");
-            return _blobStorageService.ExistsAsync(containerName, $"{cacheKey}.mp3").Result;
+            return _metadataService.EpisodeExistsAsync(cacheKey).Result;
         }
 
         public string GetCachedEpisodePath(string episodeId)
@@ -119,7 +95,7 @@ namespace Quintessentia.Services
                 // Get file size
                 var fileInfo = new FileInfo(tempPath);
 
-                // Save metadata to database
+                // Save metadata to blob storage
                 var episode = new AudioEpisode
                 {
                     CacheKey = cacheKey,
@@ -129,8 +105,7 @@ namespace Quintessentia.Services
                     DownloadDate = DateTime.UtcNow
                 };
 
-                _dbContext.AudioEpisodes.Add(episode);
-                await _dbContext.SaveChangesAsync();
+                await _metadataService.SaveEpisodeMetadataAsync(episode);
 
                 _logger.LogInformation("Successfully downloaded and cached episode: {CacheKey}", cacheKey);
                 return tempPath;
@@ -216,41 +191,30 @@ namespace Quintessentia.Services
             {
                 _logger.LogInformation("Starting full AI processing pipeline for episode: {CacheKey}", cacheKey);
 
-                // Check if summary is already in database
-                var episode = await _dbContext.AudioEpisodes
-                    .Include(e => e.Summary)
-                    .FirstOrDefaultAsync(e => e.CacheKey == cacheKey);
-
-                if (episode?.Summary != null)
+                // Check if summary already exists in blob storage
+                if (await _metadataService.SummaryExistsAsync(cacheKey))
                 {
+                    _logger.LogInformation("Summary found in cache: {CacheKey}", cacheKey);
+
+                    // Download summary to temp location
                     var summaryContainer = GetContainerName("Summaries");
-                    var summaryBlobExists = await _blobStorageService.ExistsAsync(
+                    var tempSummaryPath = GetTempFilePath(cacheKey, "_summary.mp3");
+                    await _blobStorageService.DownloadToFileAsync(
                         summaryContainer,
-                        $"{cacheKey}_summary.mp3");
+                        $"{cacheKey}_summary.mp3",
+                        tempSummaryPath);
 
-                    if (summaryBlobExists)
+                    progressCallback?.Invoke(new ProcessingStatus
                     {
-                        _logger.LogInformation("Summary found in cache: {CacheKey}", cacheKey);
+                        Stage = "complete",
+                        Message = "Summary retrieved from cache",
+                        Progress = 100,
+                        IsComplete = true,
+                        EpisodeId = cacheKey,
+                        SummaryAudioPath = tempSummaryPath
+                    });
 
-                        // Download summary to temp location
-                        var tempSummaryPath = GetTempFilePath(cacheKey, "_summary.mp3");
-                        await _blobStorageService.DownloadToFileAsync(
-                            summaryContainer,
-                            $"{cacheKey}_summary.mp3",
-                            tempSummaryPath);
-
-                        progressCallback?.Invoke(new ProcessingStatus
-                        {
-                            Stage = "complete",
-                            Message = "Summary retrieved from cache",
-                            Progress = 100,
-                            IsComplete = true,
-                            EpisodeId = cacheKey,
-                            SummaryAudioPath = tempSummaryPath
-                        });
-
-                        return tempSummaryPath;
-                    }
+                    return tempSummaryPath;
                 }
 
                 // Get the episode file (download from blob to temp if needed)
@@ -345,15 +309,10 @@ namespace Quintessentia.Services
                 var summaryAudioBlobName = $"{cacheKey}_summary.mp3";
                 await _blobStorageService.UploadFileAsync(summariesContainer, summaryAudioBlobName, tempSummaryAudioPath);
 
-                // Save summary metadata to database
-                if (episode == null)
-                {
-                    throw new InvalidOperationException($"Episode not found in database: {cacheKey}");
-                }
-
+                // Save summary metadata to blob storage
                 var audioSummary = new AudioSummary
                 {
-                    EpisodeId = episode.Id,
+                    CacheKey = cacheKey,
                     TranscriptBlobPath = $"{transcriptsContainer}/{transcriptBlobName}",
                     SummaryTextBlobPath = $"{transcriptsContainer}/{summaryTextBlobName}",
                     SummaryAudioBlobPath = $"{summariesContainer}/{summaryAudioBlobName}",
@@ -362,8 +321,7 @@ namespace Quintessentia.Services
                     ProcessedDate = DateTime.UtcNow
                 };
 
-                _dbContext.AudioSummaries.Add(audioSummary);
-                await _dbContext.SaveChangesAsync();
+                await _metadataService.SaveSummaryMetadataAsync(cacheKey, audioSummary);
 
                 _logger.LogInformation("Full AI processing pipeline completed successfully. Summary audio at: {SummaryAudioPath}", tempSummaryAudioPath);
 
@@ -409,15 +367,7 @@ namespace Quintessentia.Services
         public bool IsSummaryCached(string episodeId)
         {
             var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-            var episode = _dbContext.AudioEpisodes
-                .Include(e => e.Summary)
-                .FirstOrDefault(e => e.CacheKey == cacheKey);
-
-            if (episode?.Summary == null)
-                return false;
-
-            var summaryContainer = GetContainerName("Summaries");
-            return _blobStorageService.ExistsAsync(summaryContainer, $"{cacheKey}_summary.mp3").Result;
+            return _metadataService.SummaryExistsAsync(cacheKey).Result;
         }
 
         private string GetTempFilePath(string cacheKey, string suffix)
