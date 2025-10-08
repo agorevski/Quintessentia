@@ -29,27 +29,27 @@ namespace SpotifySummarizer.Services
             _configuration = configuration;
 
             // Initialize Speech-to-Text client
-            var sttEndpoint = _configuration["AzureOpenAI:SpeechToText:Endpoint"] 
+            var sttEndpoint = _configuration["AzureOpenAI:Endpoint"]
                 ?? throw new InvalidOperationException("Speech-to-Text endpoint not configured");
-            var sttKey = _configuration["AzureOpenAI:SpeechToText:Key"] 
+            var sttKey = _configuration["AzureOpenAI:Key"] 
                 ?? throw new InvalidOperationException("Speech-to-Text key not configured");
             _sttDeployment = _configuration["AzureOpenAI:SpeechToText:DeploymentName"] 
                 ?? throw new InvalidOperationException("Speech-to-Text deployment name not configured");
             _sttClient = new AzureOpenAIClient(new Uri(sttEndpoint), new AzureKeyCredential(sttKey));
 
             // Initialize GPT client
-            var gptEndpoint = _configuration["AzureOpenAI:GPT:Endpoint"] 
+            var gptEndpoint = _configuration["AzureOpenAI:Endpoint"] 
                 ?? throw new InvalidOperationException("GPT endpoint not configured");
-            var gptKey = _configuration["AzureOpenAI:GPT:Key"] 
+            var gptKey = _configuration["AzureOpenAI:Key"] 
                 ?? throw new InvalidOperationException("GPT key not configured");
             _gptDeployment = _configuration["AzureOpenAI:GPT:DeploymentName"] 
                 ?? throw new InvalidOperationException("GPT deployment name not configured");
             _gptClient = new AzureOpenAIClient(new Uri(gptEndpoint), new AzureKeyCredential(gptKey));
 
             // Initialize Text-to-Speech client
-            var ttsEndpoint = _configuration["AzureOpenAI:TextToSpeech:Endpoint"] 
+            var ttsEndpoint = _configuration["AzureOpenAI:Endpoint"] 
                 ?? throw new InvalidOperationException("Text-to-Speech endpoint not configured");
-            var ttsKey = _configuration["AzureOpenAI:TextToSpeech:Key"] 
+            var ttsKey = _configuration["AzureOpenAI:Key"] 
                 ?? throw new InvalidOperationException("Text-to-Speech key not configured");
             _ttsDeployment = _configuration["AzureOpenAI:TextToSpeech:DeploymentName"] 
                 ?? throw new InvalidOperationException("Text-to-Speech deployment name not configured");

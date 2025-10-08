@@ -13,7 +13,7 @@ namespace SpotifySummarizer.Services
             IConfiguration configuration,
             ILogger<AzureBlobStorageService> logger)
         {
-            var connectionString = configuration["AzureStorage:ConnectionString"];
+            var connectionString = configuration["AzureStorageConnectionString"];
             
             if (string.IsNullOrEmpty(connectionString))
             {
