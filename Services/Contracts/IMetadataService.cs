@@ -1,8 +1,8 @@
 using Quintessentia.Models;
 
-namespace Quintessentia.Services
+namespace Quintessentia.Services.Contracts
 {
-    public interface IBlobMetadataService
+    public interface IMetadataService
     {
         Task<AudioEpisode?> GetEpisodeMetadataAsync(string cacheKey);
         Task SaveEpisodeMetadataAsync(AudioEpisode episode);

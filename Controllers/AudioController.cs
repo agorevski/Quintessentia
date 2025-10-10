@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Quintessentia.Models;
-using Quintessentia.Services;
+using Quintessentia.Services.Contracts;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text;
@@ -10,15 +10,15 @@ namespace Quintessentia.Controllers
     public class AudioController : Controller
     {
         private readonly IAudioService _audioService;
-        private readonly IBlobStorageService _blobStorageService;
-        private readonly IBlobMetadataService _metadataService;
+        private readonly IStorageService _blobStorageService;
+        private readonly IMetadataService _metadataService;
         private readonly ILogger<AudioController> _logger;
         private readonly IConfiguration _configuration;
 
         public AudioController(
             IAudioService audioService,
-            IBlobStorageService blobStorageService,
-            IBlobMetadataService metadataService,
+            IStorageService blobStorageService,
+            IMetadataService metadataService,
             ILogger<AudioController> logger,
             IConfiguration configuration)
         {
@@ -129,7 +129,8 @@ namespace Quintessentia.Controllers
             string? settingsGptDeployment = null,
             string? settingsTtsDeployment = null,
             float? settingsTtsSpeedRatio = null,
-            string? settingsTtsResponseFormat = null)
+            string? settingsTtsResponseFormat = null,
+            bool? settingsEnableAutoplay = null)
         {
             var stopwatch = Stopwatch.StartNew();
             
@@ -148,7 +149,8 @@ namespace Quintessentia.Controllers
                     !string.IsNullOrWhiteSpace(settingsGptDeployment) ||
                     !string.IsNullOrWhiteSpace(settingsTtsDeployment) ||
                     settingsTtsSpeedRatio.HasValue ||
-                    !string.IsNullOrWhiteSpace(settingsTtsResponseFormat))
+                    !string.IsNullOrWhiteSpace(settingsTtsResponseFormat) ||
+                    settingsEnableAutoplay.HasValue)
                 {
                     customSettings = new AzureOpenAISettings
                     {
@@ -158,7 +160,8 @@ namespace Quintessentia.Controllers
                         GptDeployment = settingsGptDeployment,
                         TtsDeployment = settingsTtsDeployment,
                         TtsSpeedRatio = settingsTtsSpeedRatio,
-                        TtsResponseFormat = settingsTtsResponseFormat
+                        TtsResponseFormat = settingsTtsResponseFormat,
+                        EnableAutoplay = settingsEnableAutoplay
                     };
                     _logger.LogInformation("Using custom Azure OpenAI settings for this request");
                 }
@@ -367,7 +370,8 @@ namespace Quintessentia.Controllers
             string? settingsGptDeployment = null,
             string? settingsTtsDeployment = null,
             float? settingsTtsSpeedRatio = null,
-            string? settingsTtsResponseFormat = null)
+            string? settingsTtsResponseFormat = null,
+            bool? settingsEnableAutoplay = null)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
@@ -397,7 +401,8 @@ namespace Quintessentia.Controllers
                     !string.IsNullOrWhiteSpace(settingsGptDeployment) ||
                     !string.IsNullOrWhiteSpace(settingsTtsDeployment) ||
                     settingsTtsSpeedRatio.HasValue ||
-                    !string.IsNullOrWhiteSpace(settingsTtsResponseFormat))
+                    !string.IsNullOrWhiteSpace(settingsTtsResponseFormat) ||
+                    settingsEnableAutoplay.HasValue)
                 {
                     customSettings = new AzureOpenAISettings
                     {
@@ -407,7 +412,8 @@ namespace Quintessentia.Controllers
                         GptDeployment = settingsGptDeployment,
                         TtsDeployment = settingsTtsDeployment,
                         TtsSpeedRatio = settingsTtsSpeedRatio,
-                        TtsResponseFormat = settingsTtsResponseFormat
+                        TtsResponseFormat = settingsTtsResponseFormat,
+                        EnableAutoplay = settingsEnableAutoplay
                     };
                     _logger.LogInformation("Using custom Azure OpenAI settings for streaming request");
                 }

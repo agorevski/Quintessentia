@@ -1,0 +1,228 @@
+using Quintessentia.Models;
+using Quintessentia.Services.Contracts;
+using System.Text.Json;
+
+namespace Quintessentia.Services
+{
+    public class LocalFileMetadataService : IMetadataService
+    {
+        private readonly string _basePath;
+        private readonly string _episodesMetadataPath;
+        private readonly string _summariesMetadataPath;
+        private readonly ILogger<LocalFileMetadataService> _logger;
+        private readonly JsonSerializerOptions _jsonOptions;
+
+        public LocalFileMetadataService(
+            IConfiguration configuration,
+            ILogger<LocalFileMetadataService> logger)
+        {
+            _logger = logger;
+            
+            var storageBasePath = configuration["LocalStorage:BasePath"] ?? "LocalStorageData";
+            _basePath = Path.Combine(storageBasePath, "metadata");
+            _episodesMetadataPath = Path.Combine(_basePath, "episodes");
+            _summariesMetadataPath = Path.Combine(_basePath, "summaries");
+
+            _jsonOptions = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNameCaseInsensitive = true
+            };
+
+            // Ensure directories exist
+            InitializeDirectories();
+        }
+
+        private void InitializeDirectories()
+        {
+            foreach (var path in new[] { _basePath, _episodesMetadataPath, _summariesMetadataPath })
+            {
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                    _logger.LogInformation("Created metadata directory: {Path}", path);
+                }
+            }
+        }
+
+        private string GetEpisodeFilePath(string cacheKey)
+        {
+            return Path.Combine(_episodesMetadataPath, $"{cacheKey}.json");
+        }
+
+        private string GetSummaryFilePath(string cacheKey)
+        {
+            return Path.Combine(_summariesMetadataPath, $"{cacheKey}.json");
+        }
+
+        public async Task<AudioEpisode?> GetEpisodeMetadataAsync(string cacheKey)
+        {
+            try
+            {
+                var filePath = GetEpisodeFilePath(cacheKey);
+                
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogDebug("Episode metadata not found: {CacheKey}", cacheKey);
+                    return null;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var episode = JsonSerializer.Deserialize<AudioEpisode>(json, _jsonOptions);
+                
+                _logger.LogInformation("Retrieved episode metadata: {CacheKey}", cacheKey);
+                return episode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving episode metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+        }
+
+        public async Task SaveEpisodeMetadataAsync(AudioEpisode episode)
+        {
+            try
+            {
+                var filePath = GetEpisodeFilePath(episode.CacheKey);
+                var json = JsonSerializer.Serialize(episode, _jsonOptions);
+                
+                await File.WriteAllTextAsync(filePath, json);
+                
+                _logger.LogInformation("Saved episode metadata: {CacheKey}", episode.CacheKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving episode metadata: {CacheKey}", episode.CacheKey);
+                throw;
+            }
+        }
+
+        public Task<bool> EpisodeExistsAsync(string cacheKey)
+        {
+            try
+            {
+                var filePath = GetEpisodeFilePath(cacheKey);
+                var exists = File.Exists(filePath);
+                
+                _logger.LogDebug("Episode metadata exists check: {CacheKey} = {Exists}", cacheKey, exists);
+                return Task.FromResult(exists);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking episode metadata existence: {CacheKey}", cacheKey);
+                return Task.FromResult(false);
+            }
+        }
+
+        public async Task<AudioSummary?> GetSummaryMetadataAsync(string cacheKey)
+        {
+            try
+            {
+                var filePath = GetSummaryFilePath(cacheKey);
+                
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogDebug("Summary metadata not found: {CacheKey}", cacheKey);
+                    return null;
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var summary = JsonSerializer.Deserialize<AudioSummary>(json, _jsonOptions);
+                
+                _logger.LogInformation("Retrieved summary metadata: {CacheKey}", cacheKey);
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving summary metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+        }
+
+        public async Task SaveSummaryMetadataAsync(string cacheKey, AudioSummary summary)
+        {
+            try
+            {
+                var filePath = GetSummaryFilePath(cacheKey);
+                var json = JsonSerializer.Serialize(summary, _jsonOptions);
+                
+                await File.WriteAllTextAsync(filePath, json);
+                
+                _logger.LogInformation("Saved summary metadata: {CacheKey}", cacheKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving summary metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+        }
+
+        public Task<bool> SummaryExistsAsync(string cacheKey)
+        {
+            try
+            {
+                var filePath = GetSummaryFilePath(cacheKey);
+                var exists = File.Exists(filePath);
+                
+                _logger.LogDebug("Summary metadata exists check: {CacheKey} = {Exists}", cacheKey, exists);
+                return Task.FromResult(exists);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking summary metadata existence: {CacheKey}", cacheKey);
+                return Task.FromResult(false);
+            }
+        }
+
+        public Task DeleteEpisodeMetadataAsync(string cacheKey)
+        {
+            try
+            {
+                var filePath = GetEpisodeFilePath(cacheKey);
+                
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    _logger.LogInformation("Deleted episode metadata: {CacheKey}", cacheKey);
+                }
+                else
+                {
+                    _logger.LogDebug("Episode metadata not found for deletion: {CacheKey}", cacheKey);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting episode metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteSummaryMetadataAsync(string cacheKey)
+        {
+            try
+            {
+                var filePath = GetSummaryFilePath(cacheKey);
+                
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    _logger.LogInformation("Deleted summary metadata: {CacheKey}", cacheKey);
+                }
+                else
+                {
+                    _logger.LogDebug("Summary metadata not found for deletion: {CacheKey}", cacheKey);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting summary metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            
+            return Task.CompletedTask;
+        }
+    }
+}

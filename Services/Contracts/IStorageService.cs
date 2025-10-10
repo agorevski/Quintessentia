@@ -1,9 +1,9 @@
-namespace Quintessentia.Services
+namespace Quintessentia.Services.Contracts
 {
-    public interface IBlobStorageService
+    public interface IStorageService
     {
         /// <summary>
-        /// Uploads a stream to blob storage
+        /// Uploads a stream to storage
         /// </summary>
         Task<string> UploadStreamAsync(string containerName, string blobName, Stream stream);
 
@@ -33,7 +33,7 @@ namespace Quintessentia.Services
         Task<long> GetBlobSizeAsync(string containerName, string blobName);
 
         /// <summary>
-        /// Uploads a file from local path to blob storage
+        /// Uploads a file from local path to storage
         /// </summary>
         Task<string> UploadFileAsync(string containerName, string blobName, string localPath);
     }

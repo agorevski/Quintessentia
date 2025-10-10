@@ -1,21 +1,22 @@
 using System.Text.Json;
 using Quintessentia.Models;
+using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
 {
-    public class BlobMetadataService : IBlobMetadataService
+    public class AzureBlobMetadataService : IMetadataService
     {
-        private readonly IBlobStorageService _blobStorageService;
-        private readonly ILogger<BlobMetadataService> _logger;
+        private readonly IStorageService _storageService;
+        private readonly ILogger<AzureBlobMetadataService> _logger;
         private readonly IConfiguration _configuration;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public BlobMetadataService(
-            IBlobStorageService blobStorageService,
-            ILogger<BlobMetadataService> logger,
+        public AzureBlobMetadataService(
+            IStorageService storageService,
+            ILogger<AzureBlobMetadataService> logger,
             IConfiguration configuration)
         {
-            _blobStorageService = blobStorageService;
+            _storageService = storageService;
             _logger = logger;
             _configuration = configuration;
             
@@ -38,13 +39,13 @@ namespace Quintessentia.Services
                 var containerName = GetContainerName("Episodes");
                 var metadataPath = $"{cacheKey}.json";
 
-                if (!await _blobStorageService.ExistsAsync(containerName, metadataPath))
+                if (!await _storageService.ExistsAsync(containerName, metadataPath))
                 {
                     return null;
                 }
 
                 using var stream = new MemoryStream();
-                await _blobStorageService.DownloadToStreamAsync(containerName, metadataPath, stream);
+                await _storageService.DownloadToStreamAsync(containerName, metadataPath, stream);
                 
                 stream.Position = 0;
                 var episode = await JsonSerializer.DeserializeAsync<AudioEpisode>(stream, _jsonOptions);
@@ -70,7 +71,7 @@ namespace Quintessentia.Services
                 await JsonSerializer.SerializeAsync(stream, episode, _jsonOptions);
                 stream.Position = 0;
 
-                await _blobStorageService.UploadStreamAsync(containerName, metadataPath, stream);
+                await _storageService.UploadStreamAsync(containerName, metadataPath, stream);
                 
                 _logger.LogInformation("Saved episode metadata for cache key: {CacheKey}", episode.CacheKey);
             }
@@ -88,8 +89,8 @@ namespace Quintessentia.Services
                 var containerName = GetContainerName("Episodes");
                 
                 // Check if both the audio file and metadata exist
-                var audioExists = await _blobStorageService.ExistsAsync(containerName, $"{cacheKey}.mp3");
-                var metadataExists = await _blobStorageService.ExistsAsync(containerName, $"{cacheKey}.json");
+                var audioExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}.mp3");
+                var metadataExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}.json");
                 
                 return audioExists && metadataExists;
             }
@@ -107,13 +108,13 @@ namespace Quintessentia.Services
                 var containerName = GetContainerName("Summaries");
                 var metadataPath = $"{cacheKey}_summary.json";
 
-                if (!await _blobStorageService.ExistsAsync(containerName, metadataPath))
+                if (!await _storageService.ExistsAsync(containerName, metadataPath))
                 {
                     return null;
                 }
 
                 using var stream = new MemoryStream();
-                await _blobStorageService.DownloadToStreamAsync(containerName, metadataPath, stream);
+                await _storageService.DownloadToStreamAsync(containerName, metadataPath, stream);
                 
                 stream.Position = 0;
                 var summary = await JsonSerializer.DeserializeAsync<AudioSummary>(stream, _jsonOptions);
@@ -139,7 +140,7 @@ namespace Quintessentia.Services
                 await JsonSerializer.SerializeAsync(stream, summary, _jsonOptions);
                 stream.Position = 0;
 
-                await _blobStorageService.UploadStreamAsync(containerName, metadataPath, stream);
+                await _storageService.UploadStreamAsync(containerName, metadataPath, stream);
                 
                 _logger.LogInformation("Saved summary metadata for cache key: {CacheKey}", cacheKey);
             }
@@ -157,8 +158,8 @@ namespace Quintessentia.Services
                 var containerName = GetContainerName("Summaries");
                 
                 // Check if both the summary audio and metadata exist
-                var audioExists = await _blobStorageService.ExistsAsync(containerName, $"{cacheKey}_summary.mp3");
-                var metadataExists = await _blobStorageService.ExistsAsync(containerName, $"{cacheKey}_summary.json");
+                var audioExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}_summary.mp3");
+                var metadataExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}_summary.json");
                 
                 return audioExists && metadataExists;
             }
@@ -176,8 +177,8 @@ namespace Quintessentia.Services
                 var containerName = GetContainerName("Episodes");
                 
                 // Delete both audio and metadata
-                await _blobStorageService.DeleteAsync(containerName, $"{cacheKey}.mp3");
-                await _blobStorageService.DeleteAsync(containerName, $"{cacheKey}.json");
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}.mp3");
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}.json");
                 
                 _logger.LogInformation("Deleted episode metadata for cache key: {CacheKey}", cacheKey);
             }
@@ -195,8 +196,8 @@ namespace Quintessentia.Services
                 var containerName = GetContainerName("Summaries");
                 
                 // Delete summary audio and metadata
-                await _blobStorageService.DeleteAsync(containerName, $"{cacheKey}_summary.mp3");
-                await _blobStorageService.DeleteAsync(containerName, $"{cacheKey}_summary.json");
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}_summary.mp3");
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}_summary.json");
                 
                 _logger.LogInformation("Deleted summary metadata for cache key: {CacheKey}", cacheKey);
             }

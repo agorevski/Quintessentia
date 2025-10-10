@@ -5,6 +5,7 @@ using OpenAI.Chat;
 using System.ClientModel;
 using System.Diagnostics;
 using System.Text;
+using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
 {

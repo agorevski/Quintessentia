@@ -1,6 +1,6 @@
 using Quintessentia.Models;
 
-namespace Quintessentia.Services
+namespace Quintessentia.Services.Contracts
 {
     public interface IAudioService
     {

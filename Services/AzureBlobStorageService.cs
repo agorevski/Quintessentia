@@ -1,9 +1,10 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
 {
-    public class AzureBlobStorageService : IBlobStorageService
+    public class AzureBlobStorageService : IStorageService
     {
         private readonly BlobServiceClient _blobServiceClient;
         private readonly ILogger<AzureBlobStorageService> _logger;

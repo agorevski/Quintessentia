@@ -11,6 +11,7 @@ namespace Quintessentia.Models
         // TTS specific settings
         public float? TtsSpeedRatio { get; set; }
         public string? TtsResponseFormat { get; set; }
+        public bool? EnableAutoplay { get; set; }
 
         public bool HasAnyOverride()
         {
@@ -20,7 +21,8 @@ namespace Quintessentia.Models
                    !string.IsNullOrWhiteSpace(GptDeployment) ||
                    !string.IsNullOrWhiteSpace(TtsDeployment) ||
                    TtsSpeedRatio.HasValue ||
-                   !string.IsNullOrWhiteSpace(TtsResponseFormat);
+                   !string.IsNullOrWhiteSpace(TtsResponseFormat) ||
+                   EnableAutoplay.HasValue;
         }
     }
 }

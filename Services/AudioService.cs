@@ -1,4 +1,5 @@
 using Quintessentia.Models;
+using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
 {
@@ -7,8 +8,8 @@ namespace Quintessentia.Services
         private readonly ILogger<AudioService> _logger;
         private readonly HttpClient _httpClient;
         private readonly IAzureOpenAIService _azureOpenAIService;
-        private readonly IBlobStorageService _blobStorageService;
-        private readonly IBlobMetadataService _metadataService;
+        private readonly IStorageService _storageService;
+        private readonly IMetadataService _metadataService;
         private readonly IConfiguration _configuration;
         private readonly string _tempDirectory;
 
@@ -16,14 +17,14 @@ namespace Quintessentia.Services
             ILogger<AudioService> logger,
             IHttpClientFactory httpClientFactory,
             IAzureOpenAIService azureOpenAIService,
-            IBlobStorageService blobStorageService,
-            IBlobMetadataService metadataService,
+            IStorageService storageService,
+            IMetadataService metadataService,
             IConfiguration configuration)
         {
             _logger = logger;
             _httpClient = httpClientFactory.CreateClient();
             _azureOpenAIService = azureOpenAIService;
-            _blobStorageService = blobStorageService;
+            _storageService = storageService;
             _metadataService = metadataService;
             _configuration = configuration;
 
@@ -55,7 +56,7 @@ namespace Quintessentia.Services
                 // Download to temp file for processing
                 var containerName = GetContainerName("Episodes");
                 var tempPath = GetTempFilePath(cacheKey, ".mp3");
-                await _blobStorageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath);
+                await _storageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath);
 
                 return tempPath;
             }
@@ -90,7 +91,7 @@ namespace Quintessentia.Services
                 // Upload to blob storage
                 var containerName = GetContainerName("Episodes");
                 var blobPath = $"{cacheKey}.mp3";
-                await _blobStorageService.UploadFileAsync(containerName, blobPath, tempPath);
+                await _storageService.UploadFileAsync(containerName, blobPath, tempPath);
 
                 // Get file size
                 var fileInfo = new FileInfo(tempPath);
@@ -199,7 +200,7 @@ namespace Quintessentia.Services
                     // Download summary to temp location
                     var summaryContainer = GetContainerName("Summaries");
                     var tempSummaryPath = GetTempFilePath(cacheKey, "_summary.mp3");
-                    await _blobStorageService.DownloadToFileAsync(
+                    await _storageService.DownloadToFileAsync(
                         summaryContainer,
                         $"{cacheKey}_summary.mp3",
                         tempSummaryPath);
@@ -242,7 +243,7 @@ namespace Quintessentia.Services
                 var transcriptBlobName = $"{cacheKey}_transcript.txt";
                 using (var transcriptStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(transcript)))
                 {
-                    await _blobStorageService.UploadStreamAsync(transcriptsContainer, transcriptBlobName, transcriptStream);
+                    await _storageService.UploadStreamAsync(transcriptsContainer, transcriptBlobName, transcriptStream);
                 }
 
                 var transcriptWordCount = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
@@ -272,7 +273,7 @@ namespace Quintessentia.Services
                 var summaryTextBlobName = $"{cacheKey}_summary.txt";
                 using (var summaryTextStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(summary)))
                 {
-                    await _blobStorageService.UploadStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream);
+                    await _storageService.UploadStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream);
                 }
 
                 var summaryWordCount = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
@@ -307,7 +308,7 @@ namespace Quintessentia.Services
                 // Upload summary audio to blob storage
                 var summariesContainer = GetContainerName("Summaries");
                 var summaryAudioBlobName = $"{cacheKey}_summary.mp3";
-                await _blobStorageService.UploadFileAsync(summariesContainer, summaryAudioBlobName, tempSummaryAudioPath);
+                await _storageService.UploadFileAsync(summariesContainer, summaryAudioBlobName, tempSummaryAudioPath);
 
                 // Save summary metadata to blob storage
                 var audioSummary = new AudioSummary

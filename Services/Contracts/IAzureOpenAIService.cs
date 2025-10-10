@@ -1,4 +1,4 @@
-namespace Quintessentia.Services
+namespace Quintessentia.Services.Contracts
 {
     public interface IAzureOpenAIService
     {

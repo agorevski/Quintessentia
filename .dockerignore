@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build outputs
+bin/
+obj/
+out/
+publish/
+
+# Local storage data
+LocalStorageData/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Development settings
+appsettings.Development.json
+*.Development.json
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# Test results
+TestResults/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Rider
+.idea/
+*.sln.iml
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Scripts
+*.ps1
+*.sh
+
+# Documentation
+*.md
+LICENSE
+
+# CI/CD
+.github/
+azure-pipelines.yml
