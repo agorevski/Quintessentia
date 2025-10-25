@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Quintessentia.csproj" />
+    <ProjectReference Include="..\..\src\Quintessentia\Quintessentia.csproj" />
   </ItemGroup>
 
 </Project>
