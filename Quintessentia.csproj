@@ -13,4 +13,10 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Quintessentia.Tests/**" />
+    <EmbeddedResource Remove="Quintessentia.Tests/**" />
+    <None Remove="Quintessentia.Tests/**" />
+  </ItemGroup>
+
 </Project>
