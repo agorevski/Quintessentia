@@ -1,0 +1,162 @@
+# Quintessentia - Cline Rules
+
+## Project Overview
+Quintessentia is an AI-powered audio summarization tool built with ASP.NET Core MVC and Azure OpenAI. It downloads audio episodes, transcribes them using Whisper, summarizes the content with GPT, and generates condensed audio summaries using TTS.
+
+## Technology Stack
+- .NET 9 / C# 12
+- ASP.NET Core MVC
+- Azure OpenAI (Whisper, GPT, TTS)
+- Bootstrap 5 for UI
+- Server-Sent Events (SSE) for real-time progress
+- Docker support included
+
+## Architecture Patterns
+
+### Service-Based Architecture
+- Follow dependency injection patterns already established
+- All services implement interfaces from `Services/Contracts/`
+- Services are registered in `Program.cs` with appropriate lifetimes:
+  - Singleton: Storage and metadata services
+  - Scoped: Audio and Azure OpenAI services
+
+### Environment-Based Service Swapping
+- **Development**: Uses mock services (MockAzureOpenAIService, LocalFileStorageService, LocalFileMetadataService)
+- **Production**: Uses real Azure services (AzureOpenAIService, AzureBlobStorageService, AzureBlobMetadataService)
+- When adding new services, follow this pattern for testability
+
+### MVC Pattern
+- Controllers handle HTTP requests and coordinate service calls
+- Services contain business logic
+- Models represent data structures
+- Views render UI using Razor syntax
+
+## File Organization
+
+### Directory Structure
+```
+src/Quintessentia/
+├── Controllers/          # MVC controllers
+├── Models/              # Data models and view models
+├── Services/            # Business logic services
+│   └── Contracts/       # Service interfaces
+├── Views/               # Razor views
+│   ├── Home/
+│   ├── Audio/
+│   └── Shared/
+└── wwwroot/             # Static files (CSS, JS, images)
+```
+
+### Naming Conventions
+- Controllers: `{Entity}Controller.cs` (e.g., AudioController.cs)
+- Services: `{ServiceName}Service.cs` (e.g., AudioService.cs)
+- Interfaces: `I{ServiceName}.cs` (e.g., IAudioService.cs)
+- Models: Descriptive names (e.g., AudioEpisode.cs, ProcessingStatus.cs)
+- Views: Match controller actions (e.g., Index.cshtml, Result.cshtml)
+
+## Development Guidelines
+
+### When Adding New Features
+1. Define interface in `Services/Contracts/` first
+2. Implement service in `Services/`
+3. Create mock version for development if needed
+4. Register services in `Program.cs` with appropriate lifetime
+5. Add corresponding controller actions if needed
+6. Create/update views as required
+
+### Code Style
+- Follow existing C# conventions
+- Use async/await for I/O operations
+- Implement proper error handling and logging
+- Use dependency injection, avoid static dependencies
+- Keep controllers thin - delegate to services
+
+### Configuration
+- Store sensitive settings in `appsettings.json` (never commit secrets)
+- Use `appsettings.Development.json` for local overrides
+- Azure OpenAI credentials required for production
+
+### Testing
+- Tests located in `tests/Quintessentia.Tests/`
+- Follow existing test patterns (xUnit)
+- Mock external dependencies (Azure services, HTTP clients)
+- See `MANUAL_UX_TEST_CHECKLIST.md` for UX testing guidelines
+
+## Key Components
+
+### AudioService
+- Core orchestration service
+- Handles episode download, caching, and AI processing pipeline
+- Provides progress callbacks for real-time updates
+- Uses SHA-256 hashing for cache keys
+
+### AzureOpenAIService
+- Integrates with Azure OpenAI
+- Transcription (Whisper), summarization (GPT), speech generation (TTS)
+- Has mock version for development
+
+### Storage Services
+- IStorageService: File storage abstraction (local or Azure Blob)
+- IMetadataService: Metadata persistence (local JSON or Azure Blob)
+
+### Controllers
+- HomeController: Landing page and navigation
+- AudioController: Audio processing endpoints including SSE streaming
+
+## Important Notes
+
+### Caching System
+- Original MP3s cached by URL hash
+- Summaries cached to avoid reprocessing
+- Cache location: `%LocalAppData%\SpotifySummarizer\PodcastCache` (development)
+
+### Real-Time Progress
+- Uses Server-Sent Events (SSE) via `ProcessAndSummarizeStream` endpoint
+- Status updates streamed to client during processing
+- See ProcessingStatus.cs model
+
+### Docker Support
+- Dockerfile included for containerization
+- Suitable for Azure Web Apps or Container Instances
+
+## Common Tasks
+
+### Adding a New Service
+1. Create interface in `Services/Contracts/I{ServiceName}.cs`
+2. Implement service in `Services/{ServiceName}Service.cs`
+3. Register in `Program.cs`: `builder.Services.Add{Lifetime}<I{ServiceName}, {ServiceName}Service>()`
+4. Inject via constructor where needed
+
+### Adding a New Controller Action
+1. Add method to appropriate controller
+2. Return View() or JSON as appropriate
+3. Create corresponding view in `Views/{Controller}/{Action}.cshtml` if needed
+4. Update routing if custom routes required
+
+### Modifying AI Pipeline
+- Core pipeline logic in `AudioService.cs`
+- Azure OpenAI calls in `AzureOpenAIService.cs`
+- Update mock service for development testing
+
+## Files to Avoid Modifying
+- `wwwroot/lib/` - Third-party libraries (Bootstrap, jQuery)
+- `bin/`, `obj/` - Build artifacts
+- `.vs/` - Visual Studio settings
+
+## Build and Run
+```bash
+dotnet build
+dotnet run
+```
+
+Application runs on `https://localhost:{port}` (Kestrel-assigned port).
+
+## Azure Setup
+- Requires Azure OpenAI resource with Whisper, GPT, and TTS deployments
+- Configure in `appsettings.json` under `AzureOpenAI` section
+- See README for detailed Azure configuration
+
+## Additional Resources
+- Main README: `readme.md`
+- Test documentation: `tests/Quintessentia.Tests/README.md`
+- Manual testing: `tests/Quintessentia.Tests/MANUAL_UX_TEST_CHECKLIST.md`
