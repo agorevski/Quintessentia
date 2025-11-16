@@ -29,7 +29,8 @@
 param(
     [int]$Threshold = 70,
     [bool]$FailOnThreshold = $false,
-    [bool]$OpenReport = $true
+    [bool]$OpenReport = $true,
+    [bool]$SkipClean = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,11 +47,17 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Ensure coverage directory exists
-if (Test-Path $coverageDir) {
-    Write-Host "Cleaning existing coverage directory..." -ForegroundColor Yellow
-    Remove-Item -Path $coverageDir -Recurse -Force
+if (-not $SkipClean) {
+    if (Test-Path $coverageDir) {
+        Write-Host "Cleaning existing coverage directory..." -ForegroundColor Yellow
+        Remove-Item -Path $coverageDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
+} else {
+    if (-not (Test-Path $coverageDir)) {
+        New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
+    }
 }
-New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
 
 Write-Host "Running tests with coverage collection..." -ForegroundColor Green
 Write-Host "Coverage threshold: $Threshold%" -ForegroundColor Green
@@ -111,7 +118,7 @@ if ($coberturaFile -and (Test-Path $coberturaFile)) {
     reportgenerator `
         -reports:$coberturaFile `
         -targetdir:$reportDir `
-        -reporttypes:"Html;Badges" `
+        -reporttypes:"Html;Badges;TextSummary" `
         -verbosity:Warning
 
     if ($LASTEXITCODE -eq 0) {

@@ -57,9 +57,15 @@
     </Exec>
 
     <Message Text="" Importance="high" />
-    <Message Text="Coverage data collected in: $(CoverageOutputDir)\TestResults" Importance="high" />
-    <Message Text="To generate HTML report, run: .\scripts\generate-coverage.ps1" Importance="high" />
-    <Message Text="To view existing report, run: .\scripts\view-coverage.ps1" Importance="high" />
+    <Message Text="Generating HTML coverage report..." Importance="high" />
+
+    <!-- Generate HTML report using ReportGenerator -->
+    <Exec Command="pwsh -ExecutionPolicy Bypass -File &quot;$(SolutionDir)scripts\generate-coverage.ps1&quot; -OpenReport:$false -SkipClean:$true" 
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+
+    <Message Text="Coverage report generated in: $(CoverageOutputDir)\report" Importance="high" />
+    <Message Text="To view report, run: .\scripts\view-coverage.ps1" Importance="high" />
     <Message Text="========================================" Importance="high" />
 
     <Error Text="Tests failed during coverage collection" Condition="'$(FailBuildOnCoverageThreshold)' == 'true' AND '$(TestExitCode)' != '0'" />
