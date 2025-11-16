@@ -1,0 +1,47 @@
+Summary
+  Generated on: 11/16/2025 - 3:03:31 PM
+  Coverage date: 11/16/2025 - 3:03:08 PM
+  Parser: Cobertura
+  Assemblies: 1
+  Classes: 25
+  Files: 25
+  Line coverage: 20.5%
+  Covered lines: 411
+  Uncovered lines: 1591
+  Coverable lines: 2002
+  Total lines: 3697
+  Branch coverage: 14.3% (65 of 452)
+  Covered branches: 65
+  Total branches: 452
+  Method coverage: 36.1% (56 of 155)
+  Full method coverage: 30.9% (48 of 155)
+  Covered methods: 56
+  Fully covered methods: 48
+  Total methods: 155
+
+Quintessentia                                        20.5%
+  AspNetCoreGeneratedDocument.Views__ViewStart          0%
+  AspNetCoreGeneratedDocument.Views_Audio_Result        0%
+  AspNetCoreGeneratedDocument.Views_Home_Index          0%
+  AspNetCoreGeneratedDocument.Views_Home_Privacy        0%
+  AspNetCoreGeneratedDocument.Views_Shared_Error        0%
+  Program                                               0%
+  Quintessentia.Controllers.AudioController          40.1%
+  Quintessentia.Controllers.HomeController              0%
+  Quintessentia.Models.AudioEpisode                   100%
+  Quintessentia.Models.AudioProcessResult            91.6%
+  Quintessentia.Models.AudioSummary                   100%
+  Quintessentia.Models.AzureOpenAISettings           44.4%
+  Quintessentia.Models.ErrorViewModel                33.3%
+  Quintessentia.Models.ProcessingStatus              64.2%
+  Quintessentia.Services.AudioService                93.6%
+  Quintessentia.Services.AzureBlobMetadataService       0%
+  Quintessentia.Services.AzureBlobStorageService        0%
+  Quintessentia.Services.AzureOpenAIService             0%
+  Quintessentia.Services.CacheKeyService                0%
+  Quintessentia.Services.EpisodeQueryService            0%
+  Quintessentia.Services.LocalFileMetadataService       0%
+  Quintessentia.Services.LocalFileStorageService        0%
+  Quintessentia.Services.MockAzureOpenAIService         0%
+  Quintessentia.Services.ProcessingProgressService      0%
+  Quintessentia.Services.StorageConfiguration           0%

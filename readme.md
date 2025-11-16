@@ -89,6 +89,9 @@ The application uses Server-Sent Events (SSE) to stream processing status update
 - **Bootstrap 5** - Responsive UI framework
 - **Server-Sent Events (SSE)** - Real-time progress updates
 - **C# 12** - Programming language
+- **xUnit** - Testing framework
+- **Coverlet** - Code coverage collection
+- **ReportGenerator** - Coverage report generation
 
 ## Setup Requirements
 
@@ -113,6 +116,45 @@ dotnet run
 ```
 
 The application will start on `https://localhost` (port assigned by Kestrel). Navigate to the homepage, paste a direct MP3 URL, and click "Process & Summarize" to begin.
+
+## Testing & Code Coverage
+
+Quintessentia maintains a **minimum of 70% code coverage** for all releases.
+
+### Running Tests
+
+```bash
+# Run all tests
+dotnet test
+
+# Run tests with coverage (automatically happens on Debug builds)
+dotnet build
+```
+
+### Generate Coverage Reports
+
+```powershell
+# Generate detailed HTML coverage report
+.\scripts\generate-coverage.ps1
+
+# View existing coverage report
+.\scripts\view-coverage.ps1
+```
+
+### Coverage Features
+
+- **Automatic Post-Build Coverage**: Coverage is collected automatically when building in Debug configuration
+- **CI/CD Enforcement**: GitHub Actions enforces the 70% minimum threshold on all PRs and merges
+- **Detailed Reports**: HTML reports show line-by-line coverage with risk hotspot analysis
+- **Real-Time Feedback**: Build output includes coverage statistics
+
+For detailed information about code coverage, see [Code Coverage Guidelines](docs/CODE_COVERAGE.md).
+
+### Testing Documentation
+
+- [Test Project README](tests/Quintessentia.Tests/README.md) - Testing architecture and patterns
+- [Manual UX Test Checklist](tests/Quintessentia.Tests/MANUAL_UX_TEST_CHECKLIST.md) - User experience testing guide
+- [Code Coverage Guidelines](docs/CODE_COVERAGE.md) - Complete coverage documentation
 
 ## Output Files
 

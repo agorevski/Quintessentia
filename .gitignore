@@ -1,3 +1,13 @@
 **/.vs/*
 **/bin/*
 **/obj/*
+
+# Code Coverage
+coverage/*
+!coverage/report/
+coverage/report/*
+!coverage/report/Summary.txt
+**/TestResults/
+*.cobertura.xml
+*.coverage
+*.coveragexml

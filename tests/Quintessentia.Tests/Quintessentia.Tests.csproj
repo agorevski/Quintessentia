@@ -7,8 +7,20 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- Code Coverage Settings -->
+    <RunCoverageOnBuild Condition="'$(RunCoverageOnBuild)' == ''">true</RunCoverageOnBuild>
+    <CoverageThreshold Condition="'$(CoverageThreshold)' == ''">70</CoverageThreshold>
+    <FailBuildOnCoverageThreshold Condition="'$(FailBuildOnCoverageThreshold)' == ''">false</FailBuildOnCoverageThreshold>
+    <CoverageOutputDir Condition="'$(CoverageOutputDir)' == ''">$(SolutionDir)coverage</CoverageOutputDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="FluentAssertions" Version="8.8.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.10" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -29,5 +41,28 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Quintessentia\Quintessentia.csproj" />
   </ItemGroup>
+
+  <!-- Post-Build Code Coverage Target -->
+  <Target Name="GenerateCoverageReport" AfterTargets="Build" Condition="'$(RunCoverageOnBuild)' == 'true' AND '$(Configuration)' == 'Debug'">
+    <Message Text="========================================" Importance="high" />
+    <Message Text="Running Code Coverage Analysis..." Importance="high" />
+    <Message Text="Coverage Threshold: $(CoverageThreshold)%%" Importance="high" />
+    <Message Text="========================================" Importance="high" />
+
+    <!-- Run tests with coverage collection -->
+    <Exec Command="dotnet test &quot;$(MSBuildProjectFullPath)&quot; --no-build --configuration $(Configuration) --collect:&quot;XPlat Code Coverage&quot; --results-directory &quot;$(CoverageOutputDir)\TestResults&quot;" 
+          ContinueOnError="true"
+          IgnoreExitCode="false">
+      <Output TaskParameter="ExitCode" PropertyName="TestExitCode" />
+    </Exec>
+
+    <Message Text="" Importance="high" />
+    <Message Text="Coverage data collected in: $(CoverageOutputDir)\TestResults" Importance="high" />
+    <Message Text="To generate HTML report, run: .\scripts\generate-coverage.ps1" Importance="high" />
+    <Message Text="To view existing report, run: .\scripts\view-coverage.ps1" Importance="high" />
+    <Message Text="========================================" Importance="high" />
+
+    <Error Text="Tests failed during coverage collection" Condition="'$(FailBuildOnCoverageThreshold)' == 'true' AND '$(TestExitCode)' != '0'" />
+  </Target>
 
 </Project>
