@@ -23,6 +23,12 @@ else
 // Add application services
 builder.Services.AddScoped<IAudioService, AudioService>();
 
+// Add new refactored services
+builder.Services.AddSingleton<ICacheKeyService, CacheKeyService>();
+builder.Services.AddSingleton<IStorageConfiguration, StorageConfiguration>();
+builder.Services.AddScoped<IEpisodeQueryService, EpisodeQueryService>();
+builder.Services.AddScoped<IProcessingProgressService, ProcessingProgressService>();
+
 // Use mock Azure OpenAI service in Development, real service in other environments
 if (builder.Environment.IsDevelopment())
 {

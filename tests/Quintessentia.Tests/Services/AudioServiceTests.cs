@@ -18,7 +18,8 @@ namespace Quintessentia.Tests.Services
         private readonly Mock<IAzureOpenAIService> _azureOpenAIServiceMock;
         private readonly Mock<IStorageService> _storageServiceMock;
         private readonly Mock<IMetadataService> _metadataServiceMock;
-        private readonly Mock<IConfiguration> _configurationMock;
+        private readonly Mock<IStorageConfiguration> _storageConfigurationMock;
+        private readonly Mock<ICacheKeyService> _cacheKeyServiceMock;
         private readonly AudioService _audioService;
 
         public AudioServiceTests()
@@ -28,12 +29,17 @@ namespace Quintessentia.Tests.Services
             _azureOpenAIServiceMock = new Mock<IAzureOpenAIService>();
             _storageServiceMock = new Mock<IStorageService>();
             _metadataServiceMock = new Mock<IMetadataService>();
-            _configurationMock = new Mock<IConfiguration>();
+            _storageConfigurationMock = new Mock<IStorageConfiguration>();
+            _cacheKeyServiceMock = new Mock<ICacheKeyService>();
 
-            // Setup default configuration
-            _configurationMock.Setup(c => c["AzureStorage:Containers:Episodes"]).Returns("episodes");
-            _configurationMock.Setup(c => c["AzureStorage:Containers:Transcripts"]).Returns("transcripts");
-            _configurationMock.Setup(c => c["AzureStorage:Containers:Summaries"]).Returns("summaries");
+            // Setup storage configuration
+            _storageConfigurationMock.Setup(c => c.GetContainerName("Episodes")).Returns("episodes");
+            _storageConfigurationMock.Setup(c => c.GetContainerName("Transcripts")).Returns("transcripts");
+            _storageConfigurationMock.Setup(c => c.GetContainerName("Summaries")).Returns("summaries");
+
+            // Setup cache key service to return predictable keys
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>()))
+                .Returns<string>(url => "testcachekey");
 
             // Setup default HttpClient for tests that don't need specific HTTP behavior
             var defaultHttpClient = new HttpClient();
@@ -45,7 +51,8 @@ namespace Quintessentia.Tests.Services
                 _azureOpenAIServiceMock.Object,
                 _storageServiceMock.Object,
                 _metadataServiceMock.Object,
-                _configurationMock.Object
+                _storageConfigurationMock.Object,
+                _cacheKeyServiceMock.Object
             );
         }
 
@@ -95,7 +102,8 @@ namespace Quintessentia.Tests.Services
                 _azureOpenAIServiceMock.Object,
                 _storageServiceMock.Object,
                 _metadataServiceMock.Object,
-                _configurationMock.Object
+                _storageConfigurationMock.Object,
+                _cacheKeyServiceMock.Object
             );
 
             // Act

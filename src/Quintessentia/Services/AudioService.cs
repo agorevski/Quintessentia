@@ -10,7 +10,8 @@ namespace Quintessentia.Services
         private readonly IAzureOpenAIService _azureOpenAIService;
         private readonly IStorageService _storageService;
         private readonly IMetadataService _metadataService;
-        private readonly IConfiguration _configuration;
+        private readonly IStorageConfiguration _storageConfiguration;
+        private readonly ICacheKeyService _cacheKeyService;
         private readonly string _tempDirectory;
 
         public AudioService(
@@ -19,23 +20,20 @@ namespace Quintessentia.Services
             IAzureOpenAIService azureOpenAIService,
             IStorageService storageService,
             IMetadataService metadataService,
-            IConfiguration configuration)
+            IStorageConfiguration storageConfiguration,
+            ICacheKeyService cacheKeyService)
         {
             _logger = logger;
             _httpClient = httpClientFactory.CreateClient();
             _azureOpenAIService = azureOpenAIService;
             _storageService = storageService;
             _metadataService = metadataService;
-            _configuration = configuration;
+            _storageConfiguration = storageConfiguration;
+            _cacheKeyService = cacheKeyService;
 
             // Use system temp directory for processing
             _tempDirectory = Path.GetTempPath();
             _logger.LogInformation("Using temp directory: {TempDirectory}", _tempDirectory);
-        }
-
-        private string GetContainerName(string containerType)
-        {
-            return _configuration[$"AzureStorage:Containers:{containerType}"] ?? containerType.ToLower();
         }
 
         public async Task<string> GetOrDownloadEpisodeAsync(string episodeId)
@@ -46,7 +44,7 @@ namespace Quintessentia.Services
             }
 
             // Generate cache key from URL if it's a URL, otherwise use as-is
-            var cacheKey = GenerateCacheKeyFromUrl(episodeId);
+            var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
             // Check if episode exists in blob storage
             if (await _metadataService.EpisodeExistsAsync(cacheKey))
@@ -54,7 +52,7 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Episode found in cache: {CacheKey}", cacheKey);
 
                 // Download to temp file for processing
-                var containerName = GetContainerName("Episodes");
+                var containerName = _storageConfiguration.GetContainerName("Episodes");
                 var tempPath = GetTempFilePath(cacheKey, ".mp3");
                 await _storageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath);
 
@@ -68,14 +66,14 @@ namespace Quintessentia.Services
 
         public bool IsEpisodeCached(string episodeId)
         {
-            var cacheKey = GenerateCacheKeyFromUrl(episodeId);
+            var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
             return _metadataService.EpisodeExistsAsync(cacheKey).Result;
         }
 
         public string GetCachedEpisodePath(string episodeId)
         {
             // Return a temp path where the file will be downloaded when needed
-            var cacheKey = GenerateCacheKeyFromUrl(episodeId);
+            var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
             return GetTempFilePath(cacheKey, ".mp3");
         }
 
@@ -89,7 +87,7 @@ namespace Quintessentia.Services
                 await DownloadMp3FileAsync(url, tempPath);
 
                 // Upload to blob storage
-                var containerName = GetContainerName("Episodes");
+                var containerName = _storageConfiguration.GetContainerName("Episodes");
                 var blobPath = $"{cacheKey}.mp3";
                 await _storageService.UploadFileAsync(containerName, blobPath, tempPath);
 
@@ -123,22 +121,6 @@ namespace Quintessentia.Services
 
                 throw;
             }
-        }
-
-        private string GenerateCacheKeyFromUrl(string url)
-        {
-            // If it looks like a URL, generate a hash-based cache key
-            if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                using var sha256 = System.Security.Cryptography.SHA256.Create();
-                var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(url));
-                var hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                return hash.Substring(0, 32);
-            }
-
-            // Otherwise, use as-is (for backwards compatibility or direct cache keys)
-            return url;
         }
 
         private async Task DownloadMp3FileAsync(string url, string filePath)
@@ -186,7 +168,7 @@ namespace Quintessentia.Services
 
         public async Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId, Action<ProcessingStatus>? progressCallback)
         {
-            var cacheKey = GenerateCacheKeyFromUrl(episodeId);
+            var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
             try
             {
@@ -198,7 +180,7 @@ namespace Quintessentia.Services
                     _logger.LogInformation("Summary found in cache: {CacheKey}", cacheKey);
 
                     // Download summary to temp location
-                    var summaryContainer = GetContainerName("Summaries");
+                    var summaryContainer = _storageConfiguration.GetContainerName("Summaries");
                     var tempSummaryPath = GetTempFilePath(cacheKey, "_summary.mp3");
                     await _storageService.DownloadToFileAsync(
                         summaryContainer,
@@ -239,7 +221,7 @@ namespace Quintessentia.Services
                 var transcript = await _azureOpenAIService.TranscribeAudioAsync(episodePath);
 
                 // Save transcript to blob storage
-                var transcriptsContainer = GetContainerName("Transcripts");
+                var transcriptsContainer = _storageConfiguration.GetContainerName("Transcripts");
                 var transcriptBlobName = $"{cacheKey}_transcript.txt";
                 using (var transcriptStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(transcript)))
                 {
@@ -306,7 +288,7 @@ namespace Quintessentia.Services
                 await _azureOpenAIService.GenerateSpeechAsync(summary, tempSummaryAudioPath);
 
                 // Upload summary audio to blob storage
-                var summariesContainer = GetContainerName("Summaries");
+                var summariesContainer = _storageConfiguration.GetContainerName("Summaries");
                 var summaryAudioBlobName = $"{cacheKey}_summary.mp3";
                 await _storageService.UploadFileAsync(summariesContainer, summaryAudioBlobName, tempSummaryAudioPath);
 
@@ -361,13 +343,13 @@ namespace Quintessentia.Services
 
         public string GetSummaryPath(string episodeId)
         {
-            var cacheKey = GenerateCacheKeyFromUrl(episodeId);
+            var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
             return GetTempFilePath(cacheKey, "_summary.mp3");
         }
 
         public bool IsSummaryCached(string episodeId)
         {
-            var cacheKey = GenerateCacheKeyFromUrl(episodeId);
+            var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
             return _metadataService.SummaryExistsAsync(cacheKey).Result;
         }
 

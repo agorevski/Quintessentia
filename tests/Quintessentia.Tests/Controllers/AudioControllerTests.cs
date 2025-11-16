@@ -13,31 +13,30 @@ namespace Quintessentia.Tests.Controllers
     public class AudioControllerTests
     {
         private readonly Mock<IAudioService> _audioServiceMock;
-        private readonly Mock<IStorageService> _storageServiceMock;
-        private readonly Mock<IMetadataService> _metadataServiceMock;
+        private readonly Mock<IEpisodeQueryService> _episodeQueryServiceMock;
+        private readonly Mock<IProcessingProgressService> _progressServiceMock;
+        private readonly Mock<ICacheKeyService> _cacheKeyServiceMock;
         private readonly Mock<ILogger<AudioController>> _loggerMock;
-        private readonly Mock<IConfiguration> _configurationMock;
         private readonly AudioController _controller;
 
         public AudioControllerTests()
         {
             _audioServiceMock = new Mock<IAudioService>();
-            _storageServiceMock = new Mock<IStorageService>();
-            _metadataServiceMock = new Mock<IMetadataService>();
+            _episodeQueryServiceMock = new Mock<IEpisodeQueryService>();
+            _progressServiceMock = new Mock<IProcessingProgressService>();
+            _cacheKeyServiceMock = new Mock<ICacheKeyService>();
             _loggerMock = new Mock<ILogger<AudioController>>();
-            _configurationMock = new Mock<IConfiguration>();
 
-            // Setup default configuration
-            _configurationMock.Setup(c => c["AzureStorage:Containers:Episodes"]).Returns("episodes");
-            _configurationMock.Setup(c => c["AzureStorage:Containers:Transcripts"]).Returns("transcripts");
-            _configurationMock.Setup(c => c["AzureStorage:Containers:Summaries"]).Returns("summaries");
+            // Setup cache key service to return predictable keys
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>()))
+                .Returns<string>(url => "testcachekey123");
 
             _controller = new AudioController(
                 _audioServiceMock.Object,
-                _storageServiceMock.Object,
-                _metadataServiceMock.Object,
-                _loggerMock.Object,
-                _configurationMock.Object
+                _episodeQueryServiceMock.Object,
+                _progressServiceMock.Object,
+                _cacheKeyServiceMock.Object,
+                _loggerMock.Object
             );
 
             // Setup HttpContext for controller
@@ -53,7 +52,6 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
-            var cacheKey = "testcachekey123";
             _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
             _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
                 .ReturnsAsync("/temp/path/audio.mp3");
@@ -236,8 +234,16 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "testcachekey";
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(episodeId)).ReturnsAsync(true);
-            _audioServiceMock.Setup(a => a.IsSummaryCached(episodeId)).Returns(false);
+            var expectedResult = new AudioProcessResult
+            {
+                Success = true,
+                EpisodeId = episodeId,
+                FilePath = "cached",
+                WasCached = true,
+                SummaryWasCached = false
+            };
+            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId))
+                .ReturnsAsync(expectedResult);
 
             // Act
             var result = await _controller.Result(episodeId);
@@ -254,7 +260,8 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "nonexistent";
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(episodeId)).ReturnsAsync(false);
+            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId))
+                .ThrowsAsync(new FileNotFoundException());
 
             // Act
             var result = await _controller.Result(episodeId);
@@ -268,33 +275,20 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "testcachekey";
-            var summaryMetadata = new AudioSummary
+            var expectedResult = new AudioProcessResult
             {
-                CacheKey = episodeId,
+                Success = true,
+                EpisodeId = episodeId,
+                FilePath = "cached",
+                WasCached = true,
+                SummaryWasCached = true,
                 TranscriptWordCount = 1000,
                 SummaryWordCount = 200,
-                SummaryTextBlobPath = "transcripts/test_summary.txt",
-                ProcessedDate = DateTime.UtcNow
+                SummaryText = "This is the summary text",
+                SummaryAudioPath = "available"
             };
-
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(episodeId)).ReturnsAsync(true);
-            _audioServiceMock.Setup(a => a.IsSummaryCached(episodeId)).Returns(true);
-            _metadataServiceMock.Setup(m => m.GetSummaryMetadataAsync(episodeId))
-                .ReturnsAsync(summaryMetadata);
-            
-            var summaryText = "This is the summary text";
-            var summaryStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(summaryText));
-            _storageServiceMock.Setup(s => s.DownloadToStreamAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<Stream>()))
-                .Callback<string, string, Stream>((container, blob, stream) =>
-                {
-                    var data = System.Text.Encoding.UTF8.GetBytes(summaryText);
-                    stream.Write(data, 0, data.Length);
-                    stream.Position = 0;
-                })
-                .Returns(Task.CompletedTask);
+            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId))
+                .ReturnsAsync(expectedResult);
 
             // Act
             var result = await _controller.Result(episodeId);
@@ -305,7 +299,7 @@ namespace Quintessentia.Tests.Controllers
             model.SummaryWasCached.Should().BeTrue();
             model.TranscriptWordCount.Should().Be(1000);
             model.SummaryWordCount.Should().Be(200);
-            model.SummaryText.Should().Be(summaryText);
+            model.SummaryText.Should().Be("This is the summary text");
         }
         #endregion
 
@@ -316,17 +310,9 @@ namespace Quintessentia.Tests.Controllers
             // Arrange
             var episodeId = "testcachekey";
             var audioData = new byte[] { 1, 2, 3, 4, 5 };
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(episodeId)).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToStreamAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<Stream>()))
-                .Callback<string, string, Stream>((container, blob, stream) =>
-                {
-                    stream.Write(audioData, 0, audioData.Length);
-                    stream.Position = 0;
-                })
-                .Returns(Task.CompletedTask);
+            var stream = new MemoryStream(audioData);
+            _episodeQueryServiceMock.Setup(e => e.GetSummaryStreamAsync(episodeId))
+                .ReturnsAsync(stream);
 
             // Act
             var result = await _controller.DownloadSummary(episodeId);
@@ -342,7 +328,8 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "nonexistent";
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(episodeId)).ReturnsAsync(false);
+            _episodeQueryServiceMock.Setup(e => e.GetSummaryStreamAsync(episodeId))
+                .ThrowsAsync(new FileNotFoundException());
 
             // Act
             var result = await _controller.DownloadSummary(episodeId);
@@ -359,17 +346,9 @@ namespace Quintessentia.Tests.Controllers
             // Arrange
             var episodeId = "testcachekey";
             var audioData = new byte[] { 1, 2, 3, 4, 5 };
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(episodeId)).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToStreamAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<Stream>()))
-                .Callback<string, string, Stream>((container, blob, stream) =>
-                {
-                    stream.Write(audioData, 0, audioData.Length);
-                    stream.Position = 0;
-                })
-                .Returns(Task.CompletedTask);
+            var stream = new MemoryStream(audioData);
+            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(episodeId))
+                .ReturnsAsync(stream);
 
             // Act
             var result = await _controller.Download(episodeId);
@@ -384,7 +363,8 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "nonexistent";
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(episodeId)).ReturnsAsync(false);
+            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(episodeId))
+                .ThrowsAsync(new FileNotFoundException());
 
             // Act
             var result = await _controller.Download(episodeId);

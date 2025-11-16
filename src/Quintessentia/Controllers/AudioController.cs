@@ -10,28 +10,23 @@ namespace Quintessentia.Controllers
     public class AudioController : Controller
     {
         private readonly IAudioService _audioService;
-        private readonly IStorageService _blobStorageService;
-        private readonly IMetadataService _metadataService;
+        private readonly IEpisodeQueryService _episodeQueryService;
+        private readonly IProcessingProgressService _progressService;
+        private readonly ICacheKeyService _cacheKeyService;
         private readonly ILogger<AudioController> _logger;
-        private readonly IConfiguration _configuration;
 
         public AudioController(
             IAudioService audioService,
-            IStorageService blobStorageService,
-            IMetadataService metadataService,
-            ILogger<AudioController> logger,
-            IConfiguration configuration)
+            IEpisodeQueryService episodeQueryService,
+            IProcessingProgressService progressService,
+            ICacheKeyService cacheKeyService,
+            ILogger<AudioController> logger)
         {
             _audioService = audioService;
-            _blobStorageService = blobStorageService;
-            _metadataService = metadataService;
+            _episodeQueryService = episodeQueryService;
+            _progressService = progressService;
+            _cacheKeyService = cacheKeyService;
             _logger = logger;
-            _configuration = configuration;
-        }
-
-        private string GetContainerName(string containerType)
-        {
-            return _configuration[$"AzureStorage:Containers:{containerType}"] ?? containerType.ToLower();
         }
 
         [HttpPost]
@@ -52,7 +47,7 @@ namespace Quintessentia.Controllers
                 }
 
                 // Generate cache key from URL
-                var cacheKey = GenerateCacheKey(audioUrl);
+                var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
                 // Check if already cached before attempting download
                 var wasCached = _audioService.IsEpisodeCached(cacheKey);
@@ -94,24 +89,12 @@ namespace Quintessentia.Controllers
         {
             try
             {
-                // episodeId is already the cache key, no need to hash it again
-                var cacheKey = episodeId;
-                
-                // Check if episode exists in blob storage
-                if (!await _metadataService.EpisodeExistsAsync(cacheKey))
-                {
-                    return NotFound("Episode not found.");
-                }
-
-                // Stream from blob storage
-                var containerName = GetContainerName("Episodes");
-                var blobName = $"{cacheKey}.mp3";
-
-                var stream = new MemoryStream();
-                await _blobStorageService.DownloadToStreamAsync(containerName, blobName, stream);
-                stream.Position = 0;
-
-                return File(stream, "audio/mpeg", $"{cacheKey}.mp3");
+                var stream = await _episodeQueryService.GetEpisodeStreamAsync(episodeId);
+                return File(stream, "audio/mpeg", $"{episodeId}.mp3");
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound("Episode not found.");
             }
             catch (Exception ex)
             {
@@ -174,7 +157,7 @@ namespace Quintessentia.Controllers
                 }
 
                 // Generate cache key from URL
-                var cacheKey = GenerateCacheKey(audioUrl);
+                var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
                 // Check if already cached before attempting download
                 var wasCached = _audioService.IsEpisodeCached(cacheKey);
@@ -255,73 +238,12 @@ namespace Quintessentia.Controllers
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(episodeId))
-                {
-                    return BadRequest("Episode ID is required.");
-                }
-
-                // episodeId is already the cache key, no need to hash it again
-                var cacheKey = episodeId;
-
-                // Check if episode exists in blob storage
-                if (!await _metadataService.EpisodeExistsAsync(cacheKey))
-                {
-                    return NotFound("Episode not found.");
-                }
-
-                // Check if summary exists using the service method
-                var hasSummary = _audioService.IsSummaryCached(episodeId);
-
-                string? summaryText = null;
-                int? transcriptWordCount = null;
-                int? summaryWordCount = null;
-                string? summaryAudioPath = null;
-
-                // If summary exists, load the summary text from blob storage
-                if (hasSummary)
-                {
-                    var summaryMetadata = await _metadataService.GetSummaryMetadataAsync(cacheKey);
-                    if (summaryMetadata != null)
-                    {
-                        var transcriptsContainer = GetContainerName("Transcripts");
-                        var summaryTextBlobName = $"{cacheKey}_summary.txt";
-
-                        try
-                        {
-                            var summaryTextStream = new MemoryStream();
-                            await _blobStorageService.DownloadToStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream);
-                            summaryTextStream.Position = 0;
-                            using var reader = new StreamReader(summaryTextStream);
-                            summaryText = TrimNonAlphanumeric(await reader.ReadToEndAsync());
-                            summaryWordCount = summaryMetadata.SummaryWordCount;
-                            transcriptWordCount = summaryMetadata.TranscriptWordCount;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Could not load summary text for episode: {CacheKey}", cacheKey);
-                        }
-
-                        // Set the summary audio path to indicate it exists (actual path doesn't matter for display)
-                        summaryAudioPath = "available";
-                    }
-                }
-
-                // Build result model
-                var result = new AudioProcessResult
-                {
-                    Success = true,
-                    Message = "Episode processed successfully",
-                    EpisodeId = cacheKey,
-                    FilePath = "cached", // Don't expose actual file path
-                    WasCached = true,
-                    SummaryAudioPath = summaryAudioPath,
-                    SummaryWasCached = hasSummary,
-                    SummaryText = summaryText,
-                    TranscriptWordCount = transcriptWordCount,
-                    SummaryWordCount = summaryWordCount
-                };
-
+                var result = await _episodeQueryService.GetResultAsync(episodeId);
                 return View(result);
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound("Episode not found.");
             }
             catch (Exception ex)
             {
@@ -335,24 +257,12 @@ namespace Quintessentia.Controllers
         {
             try
             {
-                // episodeId is already the cache key, no need to hash it again
-                var cacheKey = episodeId;
-                
-                // Check if summary exists in blob storage
-                if (!await _metadataService.SummaryExistsAsync(cacheKey))
-                {
-                    return NotFound("Summary not found.");
-                }
-
-                // Stream from blob storage
-                var containerName = GetContainerName("Summaries");
-                var blobName = $"{cacheKey}_summary.mp3";
-
-                var stream = new MemoryStream();
-                await _blobStorageService.DownloadToStreamAsync(containerName, blobName, stream);
-                stream.Position = 0;
-
-                return File(stream, "audio/mpeg", $"{cacheKey}_summary.mp3");
+                var stream = await _episodeQueryService.GetSummaryStreamAsync(episodeId);
+                return File(stream, "audio/mpeg", $"{episodeId}_summary.mp3");
+            }
+            catch (FileNotFoundException)
+            {
+                return NotFound("Summary not found.");
             }
             catch (Exception ex)
             {
@@ -433,7 +343,7 @@ namespace Quintessentia.Controllers
                 }
 
                 // Generate cache key from URL
-                var cacheKey = GenerateCacheKey(audioUrl);
+                var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
                 // Check if already cached
                 var wasCached = _audioService.IsEpisodeCached(cacheKey);
@@ -577,18 +487,5 @@ namespace Quintessentia.Controllers
             return start <= end ? text.Substring(start, end - start + 1) : string.Empty;
         }
 
-        private string GenerateCacheKey(string url)
-        {
-            // Generate a unique cache key from the URL using SHA256 hash
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(url));
-            var hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-            
-            // Use first 32 characters for a reasonable filename
-            var cacheKey = hash.Substring(0, 32);
-            
-            _logger.LogInformation("Generated cache key {CacheKey} for URL: {Url}", cacheKey, url);
-            return cacheKey;
-        }
     }
 }
