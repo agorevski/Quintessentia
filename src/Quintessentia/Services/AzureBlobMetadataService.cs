@@ -32,23 +32,23 @@ namespace Quintessentia.Services
             return _configuration[$"AzureStorage:Containers:{containerType}"] ?? containerType.ToLower();
         }
 
-        public async Task<AudioEpisode?> GetEpisodeMetadataAsync(string cacheKey)
+        public async Task<AudioEpisode?> GetEpisodeMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
                 var containerName = GetContainerName("Episodes");
                 var metadataPath = $"{cacheKey}.json";
 
-                if (!await _storageService.ExistsAsync(containerName, metadataPath))
+                if (!await _storageService.ExistsAsync(containerName, metadataPath, cancellationToken))
                 {
                     return null;
                 }
 
                 using var stream = new MemoryStream();
-                await _storageService.DownloadToStreamAsync(containerName, metadataPath, stream);
+                await _storageService.DownloadToStreamAsync(containerName, metadataPath, stream, cancellationToken);
                 
                 stream.Position = 0;
-                var episode = await JsonSerializer.DeserializeAsync<AudioEpisode>(stream, _jsonOptions);
+                var episode = await JsonSerializer.DeserializeAsync<AudioEpisode>(stream, _jsonOptions, cancellationToken);
                 
                 _logger.LogInformation("Retrieved episode metadata for cache key: {CacheKey}", cacheKey);
                 return episode;
@@ -60,7 +60,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task SaveEpisodeMetadataAsync(AudioEpisode episode)
+        public async Task SaveEpisodeMetadataAsync(AudioEpisode episode, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -68,10 +68,10 @@ namespace Quintessentia.Services
                 var metadataPath = $"{episode.CacheKey}.json";
 
                 using var stream = new MemoryStream();
-                await JsonSerializer.SerializeAsync(stream, episode, _jsonOptions);
+                await JsonSerializer.SerializeAsync(stream, episode, _jsonOptions, cancellationToken);
                 stream.Position = 0;
 
-                await _storageService.UploadStreamAsync(containerName, metadataPath, stream);
+                await _storageService.UploadStreamAsync(containerName, metadataPath, stream, cancellationToken);
                 
                 _logger.LogInformation("Saved episode metadata for cache key: {CacheKey}", episode.CacheKey);
             }
@@ -82,15 +82,15 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task<bool> EpisodeExistsAsync(string cacheKey)
+        public async Task<bool> EpisodeExistsAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
                 var containerName = GetContainerName("Episodes");
                 
                 // Check if both the audio file and metadata exist
-                var audioExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}.mp3");
-                var metadataExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}.json");
+                var audioExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}.mp3", cancellationToken);
+                var metadataExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}.json", cancellationToken);
                 
                 return audioExists && metadataExists;
             }
@@ -101,23 +101,23 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task<AudioSummary?> GetSummaryMetadataAsync(string cacheKey)
+        public async Task<AudioSummary?> GetSummaryMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
                 var containerName = GetContainerName("Summaries");
                 var metadataPath = $"{cacheKey}_summary.json";
 
-                if (!await _storageService.ExistsAsync(containerName, metadataPath))
+                if (!await _storageService.ExistsAsync(containerName, metadataPath, cancellationToken))
                 {
                     return null;
                 }
 
                 using var stream = new MemoryStream();
-                await _storageService.DownloadToStreamAsync(containerName, metadataPath, stream);
+                await _storageService.DownloadToStreamAsync(containerName, metadataPath, stream, cancellationToken);
                 
                 stream.Position = 0;
-                var summary = await JsonSerializer.DeserializeAsync<AudioSummary>(stream, _jsonOptions);
+                var summary = await JsonSerializer.DeserializeAsync<AudioSummary>(stream, _jsonOptions, cancellationToken);
                 
                 _logger.LogInformation("Retrieved summary metadata for cache key: {CacheKey}", cacheKey);
                 return summary;
@@ -129,7 +129,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task SaveSummaryMetadataAsync(string cacheKey, AudioSummary summary)
+        public async Task SaveSummaryMetadataAsync(string cacheKey, AudioSummary summary, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -137,10 +137,10 @@ namespace Quintessentia.Services
                 var metadataPath = $"{cacheKey}_summary.json";
 
                 using var stream = new MemoryStream();
-                await JsonSerializer.SerializeAsync(stream, summary, _jsonOptions);
+                await JsonSerializer.SerializeAsync(stream, summary, _jsonOptions, cancellationToken);
                 stream.Position = 0;
 
-                await _storageService.UploadStreamAsync(containerName, metadataPath, stream);
+                await _storageService.UploadStreamAsync(containerName, metadataPath, stream, cancellationToken);
                 
                 _logger.LogInformation("Saved summary metadata for cache key: {CacheKey}", cacheKey);
             }
@@ -151,15 +151,15 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task<bool> SummaryExistsAsync(string cacheKey)
+        public async Task<bool> SummaryExistsAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
                 var containerName = GetContainerName("Summaries");
                 
                 // Check if both the summary audio and metadata exist
-                var audioExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}_summary.mp3");
-                var metadataExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}_summary.json");
+                var audioExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}_summary.mp3", cancellationToken);
+                var metadataExists = await _storageService.ExistsAsync(containerName, $"{cacheKey}_summary.json", cancellationToken);
                 
                 return audioExists && metadataExists;
             }
@@ -170,15 +170,15 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task DeleteEpisodeMetadataAsync(string cacheKey)
+        public async Task DeleteEpisodeMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
                 var containerName = GetContainerName("Episodes");
                 
                 // Delete both audio and metadata
-                await _storageService.DeleteAsync(containerName, $"{cacheKey}.mp3");
-                await _storageService.DeleteAsync(containerName, $"{cacheKey}.json");
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}.mp3", cancellationToken);
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}.json", cancellationToken);
                 
                 _logger.LogInformation("Deleted episode metadata for cache key: {CacheKey}", cacheKey);
             }
@@ -189,15 +189,15 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task DeleteSummaryMetadataAsync(string cacheKey)
+        public async Task DeleteSummaryMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
                 var containerName = GetContainerName("Summaries");
                 
                 // Delete summary audio and metadata
-                await _storageService.DeleteAsync(containerName, $"{cacheKey}_summary.mp3");
-                await _storageService.DeleteAsync(containerName, $"{cacheKey}_summary.json");
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}_summary.mp3", cancellationToken);
+                await _storageService.DeleteAsync(containerName, $"{cacheKey}_summary.json", cancellationToken);
                 
                 _logger.LogInformation("Deleted summary metadata for cache key: {CacheKey}", cacheKey);
             }

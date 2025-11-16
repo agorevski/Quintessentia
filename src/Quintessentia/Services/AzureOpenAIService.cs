@@ -121,11 +121,13 @@ namespace Quintessentia.Services
             return (_ttsClient, _ttsDeployment);
         }
 
-        public async Task<string> TranscribeAudioAsync(string audioFilePath)
+        public async Task<string> TranscribeAudioAsync(string audioFilePath, CancellationToken cancellationToken = default)
         {
             try
             {
                 _logger.LogInformation("Starting transcription for file: {FilePath}", audioFilePath);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 if (!File.Exists(audioFilePath))
                 {
@@ -141,11 +143,11 @@ namespace Quintessentia.Services
                 if (fileSize > MAX_AUDIO_FILE_SIZE)
                 {
                     _logger.LogWarning("File size ({Size} bytes) exceeds limit ({Limit} bytes). Will process in chunks.", fileSize, MAX_AUDIO_FILE_SIZE);
-                    return await TranscribeAudioInChunksAsync(audioFilePath);
+                    return await TranscribeAudioInChunksAsync(audioFilePath, cancellationToken);
                 }
 
                 // Process single file
-                return await TranscribeSingleAudioFileAsync(audioFilePath);
+                return await TranscribeSingleAudioFileAsync(audioFilePath, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -154,7 +156,7 @@ namespace Quintessentia.Services
             }
         }
 
-        private async Task<string> TranscribeSingleAudioFileAsync(string audioFilePath)
+        private async Task<string> TranscribeSingleAudioFileAsync(string audioFilePath, CancellationToken cancellationToken = default)
         {
             var (client, deployment) = GetSTTClientAndDeployment();
             var audioClient = client.GetAudioClient(deployment);
@@ -174,7 +176,7 @@ namespace Quintessentia.Services
             return transcript;
         }
 
-        private async Task<string> TranscribeAudioInChunksAsync(string audioFilePath)
+        private async Task<string> TranscribeAudioInChunksAsync(string audioFilePath, CancellationToken cancellationToken = default)
         {
             var tempChunkDirectory = Path.Combine(Path.GetTempPath(), $"audio_chunks_{Guid.NewGuid()}");
             Directory.CreateDirectory(tempChunkDirectory);
@@ -182,6 +184,8 @@ namespace Quintessentia.Services
             try
             {
                 _logger.LogInformation("Chunking audio file into smaller segments...");
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Get audio duration using FFprobe
                 var duration = await GetAudioDurationAsync(audioFilePath);
@@ -195,6 +199,8 @@ namespace Quintessentia.Services
                 chunkDuration = Math.Max(60, Math.Min(chunkDuration, 600));
                 
                 _logger.LogInformation("Using chunk duration of {ChunkDuration} seconds", chunkDuration);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Split audio into chunks
                 var chunkFiles = await SplitAudioIntoChunksAsync(audioFilePath, tempChunkDirectory, chunkDuration);
@@ -214,18 +220,19 @@ namespace Quintessentia.Services
                     var index = i; // Capture index for closure
                     var task = Task.Run(async () =>
                     {
-                        await semaphore.WaitAsync();
+                        await semaphore.WaitAsync(cancellationToken);
                         try
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             _logger.LogInformation("Transcribing chunk {Current}/{Total}...", index + 1, chunkFiles.Count);
-                            var chunkTranscript = await TranscribeSingleAudioFileAsync(chunkFiles[index]);
+                            var chunkTranscript = await TranscribeSingleAudioFileAsync(chunkFiles[index], cancellationToken);
                             transcripts[index] = chunkTranscript;
                         }
                         finally
                         {
                             semaphore.Release();
                         }
-                    });
+                    }, cancellationToken);
                     tasks.Add(task);
                 }
 
@@ -340,11 +347,13 @@ namespace Quintessentia.Services
             return chunkFiles;
         }
 
-        public async Task<string> SummarizeTranscriptAsync(string transcript)
+        public async Task<string> SummarizeTranscriptAsync(string transcript, CancellationToken cancellationToken = default)
         {
             try
             {
                 _logger.LogInformation("Starting summarization. Transcript length: {Length} characters", transcript.Length);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 var (client, deployment) = GetGPTClientAndDeployment();
                 var chatClient = client.GetChatClient(deployment);
@@ -439,11 +448,13 @@ Provide the compressed version:";
             return compressedSummary;
         }
 
-        public async Task<string> GenerateSpeechAsync(string text, string outputFilePath)
+        public async Task<string> GenerateSpeechAsync(string text, string outputFilePath, CancellationToken cancellationToken = default)
         {
             try
             {
                 _logger.LogInformation("Starting text-to-speech generation. Text length: {Length} characters", text.Length);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 var (client, deployment) = GetTTSClientAndDeployment();
                 var audioClient = client.GetAudioClient(deployment);

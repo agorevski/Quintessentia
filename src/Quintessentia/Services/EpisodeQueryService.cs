@@ -25,7 +25,7 @@ namespace Quintessentia.Services
             _logger = logger;
         }
 
-        public async Task<AudioProcessResult> GetResultAsync(string episodeId)
+        public async Task<AudioProcessResult> GetResultAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
             {
@@ -34,14 +34,16 @@ namespace Quintessentia.Services
 
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Check if episode exists
-            if (!await _metadataService.EpisodeExistsAsync(cacheKey))
+            if (!await _metadataService.EpisodeExistsAsync(cacheKey, cancellationToken))
             {
                 throw new FileNotFoundException($"Episode not found: {cacheKey}");
             }
 
             // Check if summary exists
-            var hasSummary = await _metadataService.SummaryExistsAsync(cacheKey);
+            var hasSummary = await _metadataService.SummaryExistsAsync(cacheKey, cancellationToken);
 
             string? summaryText = null;
             int? transcriptWordCount = null;
@@ -51,7 +53,7 @@ namespace Quintessentia.Services
             // If summary exists, load the summary text and metadata
             if (hasSummary)
             {
-                var summaryMetadata = await _metadataService.GetSummaryMetadataAsync(cacheKey);
+                var summaryMetadata = await _metadataService.GetSummaryMetadataAsync(cacheKey, cancellationToken);
                 if (summaryMetadata != null)
                 {
                     var transcriptsContainer = _storageConfiguration.GetContainerName("Transcripts");
@@ -60,10 +62,10 @@ namespace Quintessentia.Services
                     try
                     {
                         var summaryTextStream = new MemoryStream();
-                        await _storageService.DownloadToStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream);
+                        await _storageService.DownloadToStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream, cancellationToken);
                         summaryTextStream.Position = 0;
                         using var reader = new StreamReader(summaryTextStream);
-                        var rawSummaryText = await reader.ReadToEndAsync();
+                        var rawSummaryText = await reader.ReadToEndAsync(cancellationToken);
                         summaryText = TrimNonAlphanumeric(rawSummaryText);
                         summaryWordCount = summaryMetadata.SummaryWordCount;
                         transcriptWordCount = summaryMetadata.TranscriptWordCount;
@@ -93,7 +95,7 @@ namespace Quintessentia.Services
             };
         }
 
-        public async Task<Stream> GetEpisodeStreamAsync(string episodeId)
+        public async Task<Stream> GetEpisodeStreamAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
             {
@@ -102,8 +104,10 @@ namespace Quintessentia.Services
 
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Check if episode exists
-            if (!await _metadataService.EpisodeExistsAsync(cacheKey))
+            if (!await _metadataService.EpisodeExistsAsync(cacheKey, cancellationToken))
             {
                 throw new FileNotFoundException($"Episode not found: {cacheKey}");
             }
@@ -113,13 +117,13 @@ namespace Quintessentia.Services
             var blobName = $"{cacheKey}.mp3";
 
             var stream = new MemoryStream();
-            await _storageService.DownloadToStreamAsync(containerName, blobName, stream);
+            await _storageService.DownloadToStreamAsync(containerName, blobName, stream, cancellationToken);
             stream.Position = 0;
 
             return stream;
         }
 
-        public async Task<Stream> GetSummaryStreamAsync(string episodeId)
+        public async Task<Stream> GetSummaryStreamAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
             {
@@ -128,8 +132,10 @@ namespace Quintessentia.Services
 
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Check if summary exists
-            if (!await _metadataService.SummaryExistsAsync(cacheKey))
+            if (!await _metadataService.SummaryExistsAsync(cacheKey, cancellationToken))
             {
                 throw new FileNotFoundException($"Summary not found: {cacheKey}");
             }
@@ -139,7 +145,7 @@ namespace Quintessentia.Services
             var blobName = $"{cacheKey}_summary.mp3";
 
             var stream = new MemoryStream();
-            await _storageService.DownloadToStreamAsync(containerName, blobName, stream);
+            await _storageService.DownloadToStreamAsync(containerName, blobName, stream, cancellationToken);
             stream.Position = 0;
 
             return stream;

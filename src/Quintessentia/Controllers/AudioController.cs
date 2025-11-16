@@ -30,7 +30,7 @@ namespace Quintessentia.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Process(string audioUrl)
+        public async Task<IActionResult> Process(string audioUrl, CancellationToken cancellationToken)
         {
             try
             {
@@ -50,10 +50,10 @@ namespace Quintessentia.Controllers
                 var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
                 // Check if already cached before attempting download
-                var wasCached = _audioService.IsEpisodeCached(cacheKey);
+                var wasCached = await _audioService.IsEpisodeCachedAsync(cacheKey, cancellationToken);
 
                 // Download or retrieve cached episode (pass the full URL as the "episodeId")
-                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl, cancellationToken);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -85,11 +85,11 @@ namespace Quintessentia.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Download(string episodeId)
+        public async Task<IActionResult> Download(string episodeId, CancellationToken cancellationToken)
         {
             try
             {
-                var stream = await _episodeQueryService.GetEpisodeStreamAsync(episodeId);
+                var stream = await _episodeQueryService.GetEpisodeStreamAsync(episodeId, cancellationToken);
                 return File(stream, "audio/mpeg", $"{episodeId}.mp3");
             }
             catch (FileNotFoundException)
@@ -160,11 +160,11 @@ namespace Quintessentia.Controllers
                 var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
                 // Check if already cached before attempting download
-                var wasCached = _audioService.IsEpisodeCached(cacheKey);
-                var summaryWasCached = _audioService.IsSummaryCached(cacheKey);
+                var wasCached = await _audioService.IsEpisodeCachedAsync(cacheKey, HttpContext.RequestAborted);
+                var summaryWasCached = await _audioService.IsSummaryCachedAsync(cacheKey, HttpContext.RequestAborted);
 
                 // Download or retrieve cached episode (pass the full URL as the "episodeId")
-                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl, HttpContext.RequestAborted);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -179,7 +179,7 @@ namespace Quintessentia.Controllers
 
                 // Process through AI pipeline (transcription, summarization, TTS)
                 _logger.LogInformation("Starting AI processing pipeline for episode: {CacheKey}", cacheKey);
-                var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey);
+                var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey, HttpContext.RequestAborted);
 
                 stopwatch.Stop();
 
@@ -234,11 +234,11 @@ namespace Quintessentia.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Result(string episodeId)
+        public async Task<IActionResult> Result(string episodeId, CancellationToken cancellationToken)
         {
             try
             {
-                var result = await _episodeQueryService.GetResultAsync(episodeId);
+                var result = await _episodeQueryService.GetResultAsync(episodeId, cancellationToken);
                 return View(result);
             }
             catch (FileNotFoundException)
@@ -253,11 +253,11 @@ namespace Quintessentia.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> DownloadSummary(string episodeId)
+        public async Task<IActionResult> DownloadSummary(string episodeId, CancellationToken cancellationToken)
         {
             try
             {
-                var stream = await _episodeQueryService.GetSummaryStreamAsync(episodeId);
+                var stream = await _episodeQueryService.GetSummaryStreamAsync(episodeId, cancellationToken);
                 return File(stream, "audio/mpeg", $"{episodeId}_summary.mp3");
             }
             catch (FileNotFoundException)
@@ -345,9 +345,12 @@ namespace Quintessentia.Controllers
                 // Generate cache key from URL
                 var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
+                // Get cancellation token
+                var cancellationToken = HttpContext.RequestAborted;
+
                 // Check if already cached
-                var wasCached = _audioService.IsEpisodeCached(cacheKey);
-                var summaryWasCached = _audioService.IsSummaryCached(cacheKey);
+                var wasCached = await _audioService.IsEpisodeCachedAsync(cacheKey, cancellationToken);
+                var summaryWasCached = await _audioService.IsSummaryCachedAsync(cacheKey, cancellationToken);
 
                 // Send initial status
                 await SendStatusUpdate(new ProcessingStatus
@@ -360,7 +363,7 @@ namespace Quintessentia.Controllers
                 });
 
                 // Download or retrieve cached episode
-                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl, cancellationToken);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -396,7 +399,7 @@ namespace Quintessentia.Controllers
                 var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey, async (status) =>
                 {
                     await SendStatusUpdate(status);
-                });
+                }, cancellationToken);
 
                 stopwatch.Stop();
 
@@ -410,13 +413,13 @@ namespace Quintessentia.Controllers
 
                 if (System.IO.File.Exists(summaryTextPath))
                 {
-                    summaryText = TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath));
+                    summaryText = TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath, cancellationToken));
                     summaryWordCount = summaryText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 }
 
                 if (System.IO.File.Exists(transcriptPath))
                 {
-                    var transcript = await System.IO.File.ReadAllTextAsync(transcriptPath);
+                    var transcript = await System.IO.File.ReadAllTextAsync(transcriptPath, cancellationToken);
                     transcriptWordCount = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 }
 
@@ -435,6 +438,17 @@ namespace Quintessentia.Controllers
                     SummaryWordCount = summaryWordCount,
                     SummaryText = summaryText,
                     ProcessingDuration = stopwatch.Elapsed
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Streaming processing was cancelled by client disconnect");
+                await SendStatusUpdate(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing was cancelled",
+                    IsError = true,
+                    ErrorMessage = "Processing was cancelled"
                 });
             }
             catch (Exception ex)

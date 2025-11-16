@@ -55,7 +55,7 @@ namespace Quintessentia.Services
             return Path.Combine(_summariesMetadataPath, $"{cacheKey}.json");
         }
 
-        public async Task<AudioEpisode?> GetEpisodeMetadataAsync(string cacheKey)
+        public async Task<AudioEpisode?> GetEpisodeMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -67,7 +67,7 @@ namespace Quintessentia.Services
                     return null;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var episode = JsonSerializer.Deserialize<AudioEpisode>(json, _jsonOptions);
                 
                 _logger.LogInformation("Retrieved episode metadata: {CacheKey}", cacheKey);
@@ -80,14 +80,14 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task SaveEpisodeMetadataAsync(AudioEpisode episode)
+        public async Task SaveEpisodeMetadataAsync(AudioEpisode episode, CancellationToken cancellationToken = default)
         {
             try
             {
                 var filePath = GetEpisodeFilePath(episode.CacheKey);
                 var json = JsonSerializer.Serialize(episode, _jsonOptions);
                 
-                await File.WriteAllTextAsync(filePath, json);
+                await File.WriteAllTextAsync(filePath, json, cancellationToken);
                 
                 _logger.LogInformation("Saved episode metadata: {CacheKey}", episode.CacheKey);
             }
@@ -98,7 +98,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public Task<bool> EpisodeExistsAsync(string cacheKey)
+        public Task<bool> EpisodeExistsAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -115,7 +115,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task<AudioSummary?> GetSummaryMetadataAsync(string cacheKey)
+        public async Task<AudioSummary?> GetSummaryMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -127,7 +127,7 @@ namespace Quintessentia.Services
                     return null;
                 }
 
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var summary = JsonSerializer.Deserialize<AudioSummary>(json, _jsonOptions);
                 
                 _logger.LogInformation("Retrieved summary metadata: {CacheKey}", cacheKey);
@@ -140,14 +140,14 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task SaveSummaryMetadataAsync(string cacheKey, AudioSummary summary)
+        public async Task SaveSummaryMetadataAsync(string cacheKey, AudioSummary summary, CancellationToken cancellationToken = default)
         {
             try
             {
                 var filePath = GetSummaryFilePath(cacheKey);
                 var json = JsonSerializer.Serialize(summary, _jsonOptions);
                 
-                await File.WriteAllTextAsync(filePath, json);
+                await File.WriteAllTextAsync(filePath, json, cancellationToken);
                 
                 _logger.LogInformation("Saved summary metadata: {CacheKey}", cacheKey);
             }
@@ -158,7 +158,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public Task<bool> SummaryExistsAsync(string cacheKey)
+        public Task<bool> SummaryExistsAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -175,7 +175,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public Task DeleteEpisodeMetadataAsync(string cacheKey)
+        public Task DeleteEpisodeMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -200,7 +200,7 @@ namespace Quintessentia.Services
             return Task.CompletedTask;
         }
 
-        public Task DeleteSummaryMetadataAsync(string cacheKey)
+        public Task DeleteSummaryMetadataAsync(string cacheKey, CancellationToken cancellationToken = default)
         {
             try
             {

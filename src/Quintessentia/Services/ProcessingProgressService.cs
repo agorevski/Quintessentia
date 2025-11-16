@@ -62,8 +62,8 @@ namespace Quintessentia.Services
                 var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
 
                 // Check if already cached
-                var wasCached = _audioService.IsEpisodeCached(cacheKey);
-                var summaryWasCached = _audioService.IsSummaryCached(cacheKey);
+                var wasCached = await _audioService.IsEpisodeCachedAsync(cacheKey, cancellationToken);
+                var summaryWasCached = await _audioService.IsSummaryCachedAsync(cacheKey, cancellationToken);
 
                 // Send initial status
                 await onProgress(new ProcessingStatus
@@ -78,7 +78,7 @@ namespace Quintessentia.Services
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Download or retrieve cached episode
-                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl, cancellationToken);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
@@ -110,7 +110,7 @@ namespace Quintessentia.Services
                 var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey, async (status) =>
                 {
                     await onProgress(status);
-                });
+                }, cancellationToken);
 
                 stopwatch.Stop();
 

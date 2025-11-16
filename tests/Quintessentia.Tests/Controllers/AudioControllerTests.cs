@@ -52,12 +52,12 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/path/audio.mp3");
 
             // Act
-            var result = await _controller.Process(testUrl);
+            var result = await _controller.Process(testUrl, CancellationToken.None);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
@@ -74,12 +74,12 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var testUrl = "https://example.com/cached.mp3";
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(true);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/path/cached.mp3");
 
             // Act
-            var result = await _controller.Process(testUrl);
+            var result = await _controller.Process(testUrl, CancellationToken.None);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
@@ -95,7 +95,7 @@ namespace Quintessentia.Tests.Controllers
         public async Task Process_WithNullUrl_ReturnsBadRequest()
         {
             // Act
-            var result = await _controller.Process(null!);
+            var result = await _controller.Process(null!, CancellationToken.None);
 
             // Assert
             result.Should().BeOfType<BadRequestObjectResult>();
@@ -105,7 +105,7 @@ namespace Quintessentia.Tests.Controllers
         public async Task Process_WithEmptyUrl_ReturnsBadRequest()
         {
             // Act
-            var result = await _controller.Process("");
+            var result = await _controller.Process("", CancellationToken.None);
 
             // Assert
             result.Should().BeOfType<BadRequestObjectResult>();
@@ -115,7 +115,7 @@ namespace Quintessentia.Tests.Controllers
         public async Task Process_WithInvalidUrlFormat_ReturnsBadRequest()
         {
             // Act
-            var result = await _controller.Process("not-a-valid-url");
+            var result = await _controller.Process("not-a-valid-url", CancellationToken.None);
 
             // Assert
             var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -129,12 +129,12 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var testUrl = "https://example.com/notfound.mp3";
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new HttpRequestException("404 Not Found"));
 
             // Act
-            var result = await _controller.Process(testUrl);
+            var result = await _controller.Process(testUrl, CancellationToken.None);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
@@ -151,11 +151,11 @@ namespace Quintessentia.Tests.Controllers
             // Arrange
             var testUrl = "https://example.com/test.mp3";
             var summaryPath = "/temp/summary.mp3";
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.IsSummaryCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/episode.mp3");
-            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>()))
+            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(summaryPath);
 
             // Act
@@ -177,11 +177,11 @@ namespace Quintessentia.Tests.Controllers
             // Arrange
             var testUrl = "https://example.com/test.mp3";
             var customEndpoint = "https://custom.openai.azure.com/";
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.IsSummaryCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/episode.mp3");
-            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>()))
+            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/summary.mp3");
 
             // Act
@@ -208,11 +208,11 @@ namespace Quintessentia.Tests.Controllers
             // Arrange
             var testUrl = "https://example.com/test.mp3";
             var customSpeed = 1.5f;
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.IsSummaryCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/episode.mp3");
-            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>()))
+            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("/temp/summary.mp3");
 
             // Act
@@ -242,11 +242,11 @@ namespace Quintessentia.Tests.Controllers
                 WasCached = true,
                 SummaryWasCached = false
             };
-            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResult);
 
             // Act
-            var result = await _controller.Result(episodeId);
+            var result = await _controller.Result(episodeId, CancellationToken.None);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
@@ -260,11 +260,11 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "nonexistent";
-            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new FileNotFoundException());
 
             // Act
-            var result = await _controller.Result(episodeId);
+            var result = await _controller.Result(episodeId, CancellationToken.None);
 
             // Assert
             result.Should().BeOfType<NotFoundObjectResult>();
@@ -287,11 +287,11 @@ namespace Quintessentia.Tests.Controllers
                 SummaryText = "This is the summary text",
                 SummaryAudioPath = "available"
             };
-            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetResultAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResult);
 
             // Act
-            var result = await _controller.Result(episodeId);
+            var result = await _controller.Result(episodeId, CancellationToken.None);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
@@ -311,11 +311,11 @@ namespace Quintessentia.Tests.Controllers
             var episodeId = "testcachekey";
             var audioData = new byte[] { 1, 2, 3, 4, 5 };
             var stream = new MemoryStream(audioData);
-            _episodeQueryServiceMock.Setup(e => e.GetSummaryStreamAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetSummaryStreamAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(stream);
 
             // Act
-            var result = await _controller.DownloadSummary(episodeId);
+            var result = await _controller.DownloadSummary(episodeId, CancellationToken.None);
 
             // Assert
             var fileResult = result.Should().BeOfType<FileStreamResult>().Subject;
@@ -328,11 +328,11 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "nonexistent";
-            _episodeQueryServiceMock.Setup(e => e.GetSummaryStreamAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetSummaryStreamAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new FileNotFoundException());
 
             // Act
-            var result = await _controller.DownloadSummary(episodeId);
+            var result = await _controller.DownloadSummary(episodeId, CancellationToken.None);
 
             // Assert
             result.Should().BeOfType<NotFoundObjectResult>();
@@ -347,11 +347,11 @@ namespace Quintessentia.Tests.Controllers
             var episodeId = "testcachekey";
             var audioData = new byte[] { 1, 2, 3, 4, 5 };
             var stream = new MemoryStream(audioData);
-            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(stream);
 
             // Act
-            var result = await _controller.Download(episodeId);
+            var result = await _controller.Download(episodeId, CancellationToken.None);
 
             // Assert
             var fileResult = result.Should().BeOfType<FileStreamResult>().Subject;
@@ -363,11 +363,11 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var episodeId = "nonexistent";
-            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(episodeId))
+            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(episodeId, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new FileNotFoundException());
 
             // Act
-            var result = await _controller.Download(episodeId);
+            var result = await _controller.Download(episodeId, CancellationToken.None);
 
             // Assert
             result.Should().BeOfType<NotFoundObjectResult>();
@@ -380,12 +380,12 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var testUrl = "https://example.com/error.mp3";
-            _audioServiceMock.Setup(a => a.IsEpisodeCached(It.IsAny<string>())).Returns(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("Unexpected error"));
 
             // Act
-            var result = await _controller.Process(testUrl);
+            var result = await _controller.Process(testUrl, CancellationToken.None);
 
             // Assert
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
@@ -397,7 +397,7 @@ namespace Quintessentia.Tests.Controllers
         {
             // Arrange
             var testUrl = "https://example.com/error.mp3";
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl))
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("Processing failed"));
 
             // Act
@@ -408,6 +408,56 @@ namespace Quintessentia.Tests.Controllers
             viewResult.ViewName.Should().Be("Error");
             var model = viewResult.Model.Should().BeOfType<ErrorViewModel>().Subject;
             model.Message.Should().Contain("error occurred");
+        }
+        #endregion
+
+        #region TC-F-034: Cancellation Token Support
+        [Fact]
+        public async Task Process_PassesCancellationTokenToService()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var cts = new CancellationTokenSource();
+            var tokenPassed = false;
+
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback<string, CancellationToken>((url, ct) => {
+                    tokenPassed = ct == cts.Token;
+                })
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
+                .ReturnsAsync("/temp/path/audio.mp3");
+
+            // Act
+            var result = await _controller.Process(testUrl, cts.Token);
+
+            // Assert
+            tokenPassed.Should().BeTrue("CancellationToken should be passed to service");
+            _audioServiceMock.Verify(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), cts.Token), Times.Once);
+        }
+
+        [Fact]
+        public async Task Download_PassesCancellationTokenToService()
+        {
+            // Arrange
+            var episodeId = "testcachekey";
+            var cts = new CancellationTokenSource();
+            var tokenPassed = false;
+            var audioData = new byte[] { 1, 2, 3, 4, 5 };
+            var stream = new MemoryStream(audioData);
+
+            _episodeQueryServiceMock.Setup(e => e.GetEpisodeStreamAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback<string, CancellationToken>((id, ct) => {
+                    tokenPassed = ct == cts.Token;
+                })
+                .ReturnsAsync(stream);
+
+            // Act
+            var result = await _controller.Download(episodeId, cts.Token);
+
+            // Assert
+            tokenPassed.Should().BeTrue("CancellationToken should be passed to service");
+            _episodeQueryServiceMock.Verify(e => e.GetEpisodeStreamAsync(It.IsAny<string>(), cts.Token), Times.Once);
         }
         #endregion
     }

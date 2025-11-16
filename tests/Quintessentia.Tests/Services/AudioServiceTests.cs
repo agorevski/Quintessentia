@@ -89,10 +89,10 @@ namespace Quintessentia.Tests.Services
             var httpClientFactoryMock = new Mock<IHttpClientFactory>();
             httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
             
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-            _storageServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _storageServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _metadataServiceMock.Setup(m => m.SaveEpisodeMetadataAsync(It.IsAny<AudioEpisode>()))
+            _metadataServiceMock.Setup(m => m.SaveEpisodeMetadataAsync(It.IsAny<AudioEpisode>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Create a new service instance with the mocked HttpClient
@@ -112,8 +112,8 @@ namespace Quintessentia.Tests.Services
             // Assert
             result.Should().NotBeNullOrEmpty();
             result.Should().EndWith(".mp3");
-            _storageServiceMock.Verify(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-            _metadataServiceMock.Verify(m => m.SaveEpisodeMetadataAsync(It.IsAny<AudioEpisode>()), Times.Once);
+            _storageServiceMock.Verify(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _metadataServiceMock.Verify(m => m.SaveEpisodeMetadataAsync(It.IsAny<AudioEpisode>(), It.IsAny<CancellationToken>()), Times.Once);
         }
         #endregion
 
@@ -123,8 +123,8 @@ namespace Quintessentia.Tests.Services
         {
             // Arrange
             var testUrl = "https://example.com/cached.mp3";
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
@@ -132,8 +132,8 @@ namespace Quintessentia.Tests.Services
 
             // Assert
             result.Should().NotBeNullOrEmpty();
-            _storageServiceMock.Verify(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-            _storageServiceMock.Verify(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _storageServiceMock.Verify(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _storageServiceMock.Verify(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
         #endregion
 
@@ -184,15 +184,15 @@ namespace Quintessentia.Tests.Services
 
         #region TC-F-007: Cache key generation
         [Fact]
-        public void IsEpisodeCached_GeneratesSameKeyForSameUrl()
+        public async Task IsEpisodeCachedAsync_GeneratesSameKeyForSameUrl()
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             // Act
-            var result1 = _audioService.IsEpisodeCached(testUrl);
-            var result2 = _audioService.IsEpisodeCached(testUrl);
+            var result1 = await _audioService.IsEpisodeCachedAsync(testUrl);
+            var result2 = await _audioService.IsEpisodeCachedAsync(testUrl);
 
             // Assert
             result1.Should().BeTrue();
@@ -209,25 +209,25 @@ namespace Quintessentia.Tests.Services
             var transcript = "This is a test transcript with many words.";
             var summary = "This is a summary.";
 
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-                .Callback<string, string, string>((container, blob, localPath) => {
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, string, CancellationToken>((container, blob, localPath, ct) => {
                     // Create the file so it exists when the service checks for it
                     File.WriteAllText(localPath, "fake audio data");
                 })
                 .Returns(Task.CompletedTask);
-            _azureOpenAIServiceMock.Setup(a => a.TranscribeAudioAsync(It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.TranscribeAudioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(transcript);
-            _azureOpenAIServiceMock.Setup(a => a.SummarizeTranscriptAsync(It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.SummarizeTranscriptAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(summary);
-            _azureOpenAIServiceMock.Setup(a => a.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _storageServiceMock.Setup(s => s.UploadStreamAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>()))
+            _storageServiceMock.Setup(s => s.UploadStreamAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _storageServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            _storageServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _metadataServiceMock.Setup(m => m.SaveSummaryMetadataAsync(It.IsAny<string>(), It.IsAny<AudioSummary>()))
+            _metadataServiceMock.Setup(m => m.SaveSummaryMetadataAsync(It.IsAny<string>(), It.IsAny<AudioSummary>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
@@ -235,10 +235,10 @@ namespace Quintessentia.Tests.Services
 
             // Assert
             result.Should().NotBeNullOrEmpty();
-            _azureOpenAIServiceMock.Verify(a => a.TranscribeAudioAsync(It.IsAny<string>()), Times.Once);
-            _azureOpenAIServiceMock.Verify(a => a.SummarizeTranscriptAsync(It.IsAny<string>()), Times.Once);
-            _azureOpenAIServiceMock.Verify(a => a.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-            _metadataServiceMock.Verify(m => m.SaveSummaryMetadataAsync(It.IsAny<string>(), It.IsAny<AudioSummary>()), Times.Once);
+            _azureOpenAIServiceMock.Verify(a => a.TranscribeAudioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _azureOpenAIServiceMock.Verify(a => a.SummarizeTranscriptAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _azureOpenAIServiceMock.Verify(a => a.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _metadataServiceMock.Verify(m => m.SaveSummaryMetadataAsync(It.IsAny<string>(), It.IsAny<AudioSummary>(), It.IsAny<CancellationToken>()), Times.Once);
         }
         #endregion
 
@@ -248,8 +248,8 @@ namespace Quintessentia.Tests.Services
         {
             // Arrange
             var episodeId = "testcachekey";
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
@@ -257,9 +257,9 @@ namespace Quintessentia.Tests.Services
 
             // Assert
             result.Should().NotBeNullOrEmpty();
-            _storageServiceMock.Verify(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
-            _azureOpenAIServiceMock.Verify(a => a.TranscribeAudioAsync(It.IsAny<string>()), Times.Never);
-            _azureOpenAIServiceMock.Verify(a => a.SummarizeTranscriptAsync(It.IsAny<string>()), Times.Never);
+            _storageServiceMock.Verify(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+            _azureOpenAIServiceMock.Verify(a => a.TranscribeAudioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _azureOpenAIServiceMock.Verify(a => a.SummarizeTranscriptAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
         #endregion
 
@@ -273,28 +273,28 @@ namespace Quintessentia.Tests.Services
             var transcript = "Test transcript";
             var summary = "Test summary";
 
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-                .Callback<string, string, string>((container, blob, localPath) => {
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, string, CancellationToken>((container, blob, localPath, ct) => {
                     File.WriteAllText(localPath, "fake audio data");
                 })
                 .Returns(Task.CompletedTask);
-            _azureOpenAIServiceMock.Setup(a => a.TranscribeAudioAsync(It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.TranscribeAudioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(transcript);
-            _azureOpenAIServiceMock.Setup(a => a.SummarizeTranscriptAsync(It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.SummarizeTranscriptAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(summary);
-            _azureOpenAIServiceMock.Setup(a => a.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.GenerateSpeechAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _storageServiceMock.Setup(s => s.UploadStreamAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>()))
+            _storageServiceMock.Setup(s => s.UploadStreamAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _storageServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            _storageServiceMock.Setup(s => s.UploadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(string.Empty);
-            _metadataServiceMock.Setup(m => m.SaveSummaryMetadataAsync(It.IsAny<string>(), It.IsAny<AudioSummary>()))
+            _metadataServiceMock.Setup(m => m.SaveSummaryMetadataAsync(It.IsAny<string>(), It.IsAny<AudioSummary>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _audioService.ProcessAndSummarizeEpisodeAsync(episodeId, status => progressUpdates.Add(status));
+            await _audioService.ProcessAndSummarizeEpisodeAsync(episodeId, status => progressUpdates.Add(status), CancellationToken.None);
 
             // Assert
             progressUpdates.Should().NotBeEmpty();
@@ -311,14 +311,14 @@ namespace Quintessentia.Tests.Services
         {
             // Arrange
             var episodeId = "testcachekey";
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
-            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
-            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-                .Callback<string, string, string>((container, blob, localPath) => {
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _storageServiceMock.Setup(s => s.DownloadToFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, string, CancellationToken>((container, blob, localPath, ct) => {
                     File.WriteAllText(localPath, "fake audio data");
                 })
                 .Returns(Task.CompletedTask);
-            _azureOpenAIServiceMock.Setup(a => a.TranscribeAudioAsync(It.IsAny<string>()))
+            _azureOpenAIServiceMock.Setup(a => a.TranscribeAudioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("API Error"));
 
             // Act & Assert
@@ -326,33 +326,68 @@ namespace Quintessentia.Tests.Services
         }
         #endregion
 
-        #region TC-F-019: IsSummaryCached
+        #region TC-F-019: IsSummaryCachedAsync
         [Fact]
-        public void IsSummaryCached_WithCachedSummary_ReturnsTrue()
+        public async Task IsSummaryCachedAsync_WithCachedSummary_ReturnsTrue()
         {
             // Arrange
             var episodeId = "testcachekey";
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             // Act
-            var result = _audioService.IsSummaryCached(episodeId);
+            var result = await _audioService.IsSummaryCachedAsync(episodeId);
 
             // Assert
             result.Should().BeTrue();
         }
 
         [Fact]
-        public void IsSummaryCached_WithoutCachedSummary_ReturnsFalse()
+        public async Task IsSummaryCachedAsync_WithoutCachedSummary_ReturnsFalse()
         {
             // Arrange
             var episodeId = "testcachekey";
-            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
             // Act
-            var result = _audioService.IsSummaryCached(episodeId);
+            var result = await _audioService.IsSummaryCachedAsync(episodeId);
 
             // Assert
             result.Should().BeFalse();
+        }
+        #endregion
+
+        #region TC-F-022: Cancellation Token Support
+        [Fact]
+        public async Task GetOrDownloadEpisodeAsync_WhenCancelled_ThrowsOperationCanceledException()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var cts = new CancellationTokenSource();
+            cts.Cancel(); // Cancel immediately
+
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new OperationCanceledException());
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() => 
+                _audioService.GetOrDownloadEpisodeAsync(testUrl, cts.Token));
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeEpisodeAsync_WhenCancelled_ThrowsOperationCanceledException()
+        {
+            // Arrange
+            var episodeId = "testcachekey";
+            var cts = new CancellationTokenSource();
+            
+            _metadataServiceMock.Setup(m => m.SummaryExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _metadataServiceMock.Setup(m => m.EpisodeExistsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new OperationCanceledException());
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() => 
+                _audioService.ProcessAndSummarizeEpisodeAsync(episodeId, null, cts.Token));
         }
         #endregion
     }

@@ -36,38 +36,40 @@ namespace Quintessentia.Services
             _logger.LogInformation("Using temp directory: {TempDirectory}", _tempDirectory);
         }
 
-        public async Task<string> GetOrDownloadEpisodeAsync(string episodeId)
+        public async Task<string> GetOrDownloadEpisodeAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
             {
                 throw new ArgumentException("Episode ID/URL cannot be null or empty.", nameof(episodeId));
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Generate cache key from URL if it's a URL, otherwise use as-is
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
             // Check if episode exists in blob storage
-            if (await _metadataService.EpisodeExistsAsync(cacheKey))
+            if (await _metadataService.EpisodeExistsAsync(cacheKey, cancellationToken))
             {
                 _logger.LogInformation("Episode found in cache: {CacheKey}", cacheKey);
 
                 // Download to temp file for processing
                 var containerName = _storageConfiguration.GetContainerName("Episodes");
                 var tempPath = GetTempFilePath(cacheKey, ".mp3");
-                await _storageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath);
+                await _storageService.DownloadToFileAsync(containerName, $"{cacheKey}.mp3", tempPath, cancellationToken);
 
                 return tempPath;
             }
 
             // Download the episode - episodeId is the URL here
             _logger.LogInformation("Episode not in cache, downloading from URL...");
-            return await DownloadEpisodeAsync(episodeId, cacheKey);
+            return await DownloadEpisodeAsync(episodeId, cacheKey, cancellationToken);
         }
 
-        public bool IsEpisodeCached(string episodeId)
+        public async Task<bool> IsEpisodeCachedAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
-            return _metadataService.EpisodeExistsAsync(cacheKey).Result;
+            return await _metadataService.EpisodeExistsAsync(cacheKey, cancellationToken);
         }
 
         public string GetCachedEpisodePath(string episodeId)
@@ -77,19 +79,23 @@ namespace Quintessentia.Services
             return GetTempFilePath(cacheKey, ".mp3");
         }
 
-        public async Task<string> DownloadEpisodeAsync(string url, string cacheKey)
+        public async Task<string> DownloadEpisodeAsync(string url, string cacheKey, CancellationToken cancellationToken = default)
         {
             string tempPath = GetTempFilePath(cacheKey, ".mp3");
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // Download the actual MP3 file from the URL to temp location
-                await DownloadMp3FileAsync(url, tempPath);
+                await DownloadMp3FileAsync(url, tempPath, cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Upload to blob storage
                 var containerName = _storageConfiguration.GetContainerName("Episodes");
                 var blobPath = $"{cacheKey}.mp3";
-                await _storageService.UploadFileAsync(containerName, blobPath, tempPath);
+                await _storageService.UploadFileAsync(containerName, blobPath, tempPath, cancellationToken);
 
                 // Get file size
                 var fileInfo = new FileInfo(tempPath);
@@ -104,7 +110,7 @@ namespace Quintessentia.Services
                     DownloadDate = DateTime.UtcNow
                 };
 
-                await _metadataService.SaveEpisodeMetadataAsync(episode);
+                await _metadataService.SaveEpisodeMetadataAsync(episode, cancellationToken);
 
                 _logger.LogInformation("Successfully downloaded and cached episode: {CacheKey}", cacheKey);
                 return tempPath;
@@ -123,14 +129,14 @@ namespace Quintessentia.Services
             }
         }
 
-        private async Task DownloadMp3FileAsync(string url, string filePath)
+        private async Task DownloadMp3FileAsync(string url, string filePath, CancellationToken cancellationToken = default)
         {
             try
             {
                 _logger.LogInformation("Downloading MP3 from URL: {Url}", url);
 
                 // Download the file with streaming to handle large files efficiently
-                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 response.EnsureSuccessStatusCode();
 
                 // Verify content type is audio
@@ -141,9 +147,9 @@ namespace Quintessentia.Services
                 }
 
                 // Stream the content to file
-                using var contentStream = await response.Content.ReadAsStreamAsync();
+                using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-                await contentStream.CopyToAsync(fileStream);
+                await contentStream.CopyToAsync(fileStream, cancellationToken);
 
                 _logger.LogInformation("Successfully downloaded {Bytes} bytes to {FilePath}",
                     new FileInfo(filePath).Length, filePath);
@@ -161,12 +167,12 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId)
+        public async Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId, CancellationToken cancellationToken = default)
         {
-            return await ProcessAndSummarizeEpisodeAsync(episodeId, null);
+            return await ProcessAndSummarizeEpisodeAsync(episodeId, null, cancellationToken);
         }
 
-        public async Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId, Action<ProcessingStatus>? progressCallback)
+        public async Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId, Action<ProcessingStatus>? progressCallback, CancellationToken cancellationToken = default)
         {
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
 
@@ -174,8 +180,10 @@ namespace Quintessentia.Services
             {
                 _logger.LogInformation("Starting full AI processing pipeline for episode: {CacheKey}", cacheKey);
 
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // Check if summary already exists in blob storage
-                if (await _metadataService.SummaryExistsAsync(cacheKey))
+                if (await _metadataService.SummaryExistsAsync(cacheKey, cancellationToken))
                 {
                     _logger.LogInformation("Summary found in cache: {CacheKey}", cacheKey);
 
@@ -185,7 +193,8 @@ namespace Quintessentia.Services
                     await _storageService.DownloadToFileAsync(
                         summaryContainer,
                         $"{cacheKey}_summary.mp3",
-                        tempSummaryPath);
+                        tempSummaryPath,
+                        cancellationToken);
 
                     progressCallback?.Invoke(new ProcessingStatus
                     {
@@ -201,12 +210,14 @@ namespace Quintessentia.Services
                 }
 
                 // Get the episode file (download from blob to temp if needed)
-                var episodePath = await GetOrDownloadEpisodeAsync(episodeId);
+                var episodePath = await GetOrDownloadEpisodeAsync(episodeId, cancellationToken);
 
                 if (!File.Exists(episodePath))
                 {
                     throw new FileNotFoundException($"Episode file not found: {episodePath}");
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Step 1: Transcribe audio to text
                 _logger.LogInformation("Step 1/3: Transcribing audio to text...");
@@ -218,14 +229,16 @@ namespace Quintessentia.Services
                     EpisodeId = cacheKey
                 });
 
-                var transcript = await _azureOpenAIService.TranscribeAudioAsync(episodePath);
+                var transcript = await _azureOpenAIService.TranscribeAudioAsync(episodePath, cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Save transcript to blob storage
                 var transcriptsContainer = _storageConfiguration.GetContainerName("Transcripts");
                 var transcriptBlobName = $"{cacheKey}_transcript.txt";
                 using (var transcriptStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(transcript)))
                 {
-                    await _storageService.UploadStreamAsync(transcriptsContainer, transcriptBlobName, transcriptStream);
+                    await _storageService.UploadStreamAsync(transcriptsContainer, transcriptBlobName, transcriptStream, cancellationToken);
                 }
 
                 var transcriptWordCount = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
@@ -249,13 +262,15 @@ namespace Quintessentia.Services
                     TranscriptWordCount = transcriptWordCount
                 });
 
-                var summary = await _azureOpenAIService.SummarizeTranscriptAsync(transcript);
+                var summary = await _azureOpenAIService.SummarizeTranscriptAsync(transcript, cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Save summary text to blob storage
                 var summaryTextBlobName = $"{cacheKey}_summary.txt";
                 using (var summaryTextStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(summary)))
                 {
-                    await _storageService.UploadStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream);
+                    await _storageService.UploadStreamAsync(transcriptsContainer, summaryTextBlobName, summaryTextStream, cancellationToken);
                 }
 
                 var summaryWordCount = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
@@ -285,12 +300,14 @@ namespace Quintessentia.Services
 
                 // Generate speech to temp file
                 var tempSummaryAudioPath = GetTempFilePath(cacheKey, "_summary.mp3");
-                await _azureOpenAIService.GenerateSpeechAsync(summary, tempSummaryAudioPath);
+                await _azureOpenAIService.GenerateSpeechAsync(summary, tempSummaryAudioPath, cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // Upload summary audio to blob storage
                 var summariesContainer = _storageConfiguration.GetContainerName("Summaries");
                 var summaryAudioBlobName = $"{cacheKey}_summary.mp3";
-                await _storageService.UploadFileAsync(summariesContainer, summaryAudioBlobName, tempSummaryAudioPath);
+                await _storageService.UploadFileAsync(summariesContainer, summaryAudioBlobName, tempSummaryAudioPath, cancellationToken);
 
                 // Save summary metadata to blob storage
                 var audioSummary = new AudioSummary
@@ -304,7 +321,7 @@ namespace Quintessentia.Services
                     ProcessedDate = DateTime.UtcNow
                 };
 
-                await _metadataService.SaveSummaryMetadataAsync(cacheKey, audioSummary);
+                await _metadataService.SaveSummaryMetadataAsync(cacheKey, audioSummary, cancellationToken);
 
                 _logger.LogInformation("Full AI processing pipeline completed successfully. Summary audio at: {SummaryAudioPath}", tempSummaryAudioPath);
 
@@ -347,10 +364,10 @@ namespace Quintessentia.Services
             return GetTempFilePath(cacheKey, "_summary.mp3");
         }
 
-        public bool IsSummaryCached(string episodeId)
+        public async Task<bool> IsSummaryCachedAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
-            return _metadataService.SummaryExistsAsync(cacheKey).Result;
+            return await _metadataService.SummaryExistsAsync(cacheKey, cancellationToken);
         }
 
         private string GetTempFilePath(string cacheKey, string suffix)

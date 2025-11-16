@@ -53,7 +53,7 @@ namespace Quintessentia.Services
             return Path.Combine(_basePath, containerName, blobName);
         }
 
-        public async Task<string> UploadStreamAsync(string containerName, string blobName, Stream stream)
+        public async Task<string> UploadStreamAsync(string containerName, string blobName, Stream stream, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -68,7 +68,7 @@ namespace Quintessentia.Services
                 stream.Position = 0; // Reset stream position
                 
                 using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
-                await stream.CopyToAsync(fileStream);
+                await stream.CopyToAsync(fileStream, cancellationToken);
 
                 _logger.LogInformation("Uploaded file: {ContainerName}/{BlobName}", containerName, blobName);
                 // Return file:// URI for local files
@@ -81,12 +81,12 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task<string> UploadFileAsync(string containerName, string blobName, string localPath)
+        public async Task<string> UploadFileAsync(string containerName, string blobName, string localPath, CancellationToken cancellationToken = default)
         {
             try
             {
                 using var fileStream = File.OpenRead(localPath);
-                return await UploadStreamAsync(containerName, blobName, fileStream);
+                return await UploadStreamAsync(containerName, blobName, fileStream, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -96,7 +96,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task DownloadToStreamAsync(string containerName, string blobName, Stream targetStream)
+        public async Task DownloadToStreamAsync(string containerName, string blobName, Stream targetStream, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -108,7 +108,7 @@ namespace Quintessentia.Services
                 }
 
                 using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
-                await fileStream.CopyToAsync(targetStream);
+                await fileStream.CopyToAsync(targetStream, cancellationToken);
                 targetStream.Position = 0; // Reset stream position for reading
 
                 _logger.LogInformation("Downloaded file to stream: {ContainerName}/{BlobName}", containerName, blobName);
@@ -121,7 +121,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public async Task DownloadToFileAsync(string containerName, string blobName, string localPath)
+        public async Task DownloadToFileAsync(string containerName, string blobName, string localPath, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -142,7 +142,7 @@ namespace Quintessentia.Services
                 // Copy file asynchronously
                 using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
                 using var destinationStream = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
-                await sourceStream.CopyToAsync(destinationStream);
+                await sourceStream.CopyToAsync(destinationStream, cancellationToken);
 
                 _logger.LogInformation("Downloaded file: {ContainerName}/{BlobName} -> {LocalPath}", 
                     containerName, blobName, localPath);
@@ -155,7 +155,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public Task<bool> ExistsAsync(string containerName, string blobName)
+        public Task<bool> ExistsAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -170,7 +170,7 @@ namespace Quintessentia.Services
             }
         }
 
-        public Task DeleteAsync(string containerName, string blobName)
+        public Task DeleteAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -191,7 +191,7 @@ namespace Quintessentia.Services
             return Task.CompletedTask;
         }
 
-        public Task<long> GetBlobSizeAsync(string containerName, string blobName)
+        public Task<long> GetBlobSizeAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
         {
             try
             {

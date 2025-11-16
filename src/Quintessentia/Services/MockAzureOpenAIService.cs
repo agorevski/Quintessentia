@@ -19,12 +19,12 @@ namespace Quintessentia.Services
             _logger.LogInformation("MockAzureOpenAIService initialized - using pre-canned responses");
         }
 
-        public async Task<string> TranscribeAudioAsync(string audioFilePath)
+        public async Task<string> TranscribeAudioAsync(string audioFilePath, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("[MOCK] Starting transcription for file: {FilePath}", audioFilePath);
             
             // Simulate processing delay
-            await Task.Delay(MOCK_DELAY_MS);
+            await Task.Delay(MOCK_DELAY_MS, cancellationToken);
 
             var transcript = @"Welcome to this episode of Tech Insights. Today we're diving deep into the world of artificial intelligence and machine learning. 
             The landscape of AI has changed dramatically over the past few years. What once seemed like science fiction is now becoming an integral part of our daily lives. From voice assistants to recommendation systems, AI is everywhere.
@@ -42,12 +42,12 @@ namespace Quintessentia.Services
             return transcript;
         }
 
-        public async Task<string> SummarizeTranscriptAsync(string transcript)
+        public async Task<string> SummarizeTranscriptAsync(string transcript, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("[MOCK] Starting summarization. Transcript length: {Length} characters", transcript.Length);
             
             // Simulate processing delay
-            await Task.Delay(MOCK_DELAY_MS);
+            await Task.Delay(MOCK_DELAY_MS, cancellationToken);
 
             var summary = @"This episode of Tech Insights provides a comprehensive overview of artificial intelligence and machine learning, exploring how these technologies have evolved from science fiction concepts to integral parts of modern life.
             The discussion begins with fundamentals, explaining that machine learning is a subset of AI focused on building systems that learn from data rather than explicit programming. Three main types are covered: supervised learning with labeled data, unsupervised learning that finds patterns in unlabeled data, and reinforcement learning that trains agents through reward-based decision making.
@@ -66,12 +66,12 @@ namespace Quintessentia.Services
             return summary;
         }
 
-        public async Task<string> GenerateSpeechAsync(string text, string outputFilePath)
+        public async Task<string> GenerateSpeechAsync(string text, string outputFilePath, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("[MOCK] Starting text-to-speech generation. Text length: {Length} characters", text.Length);
             
             // Simulate processing delay
-            await Task.Delay(MOCK_DELAY_MS);
+            await Task.Delay(MOCK_DELAY_MS, cancellationToken);
 
             // Ensure directory exists
             var directory = Path.GetDirectoryName(outputFilePath);
@@ -92,13 +92,13 @@ namespace Quintessentia.Services
             {
                 // If sample file doesn't exist, create a minimal valid MP3 file
                 _logger.LogWarning("[MOCK] Sample MP3 not found at {SamplePath}, creating minimal MP3", sampleMp3Path);
-                await CreateMinimalMp3FileAsync(outputFilePath);
+                await CreateMinimalMp3FileAsync(outputFilePath, cancellationToken);
             }
 
             return outputFilePath;
         }
 
-        private async Task CreateMinimalMp3FileAsync(string filePath)
+        private async Task CreateMinimalMp3FileAsync(string filePath, CancellationToken cancellationToken = default)
         {
             // Create a minimal valid MP3 file (silent audio, about 1 second)
             // MP3 header for a very short silent file
@@ -113,7 +113,7 @@ namespace Quintessentia.Services
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             };
 
-            await File.WriteAllBytesAsync(filePath, minimalMp3);
+            await File.WriteAllBytesAsync(filePath, minimalMp3, cancellationToken);
             _logger.LogInformation("[MOCK] Created minimal MP3 file at: {FilePath}", filePath);
         }
     }
