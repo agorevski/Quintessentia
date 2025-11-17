@@ -1,25 +1,25 @@
 Summary
-  Generated on: 11/16/2025 - 3:21:37 PM
-  Coverage date: 11/16/2025 - 3:21:35 PM
+  Generated on: 11/16/2025 - 8:39:33 PM
+  Coverage date: 11/16/2025 - 8:39:27 PM
   Parser: Cobertura
   Assemblies: 1
   Classes: 25
   Files: 25
-  Line coverage: 20.6%
-  Covered lines: 413
-  Uncovered lines: 1589
+  Line coverage: 37.4%
+  Covered lines: 750
+  Uncovered lines: 1252
   Coverable lines: 2002
   Total lines: 3697
-  Branch coverage: 14.3% (65 of 452)
-  Covered branches: 65
+  Branch coverage: 25.4% (115 of 452)
+  Covered branches: 115
   Total branches: 452
-  Method coverage: 37.4% (58 of 155)
-  Full method coverage: 32.2% (50 of 155)
-  Covered methods: 58
-  Fully covered methods: 50
+  Method coverage: 57.4% (89 of 155)
+  Full method coverage: 44.5% (69 of 155)
+  Covered methods: 89
+  Fully covered methods: 69
   Total methods: 155
 
-Quintessentia                                        20.6%
+Quintessentia                                        37.4%
   AspNetCoreGeneratedDocument.Views__ViewStart          0%
   AspNetCoreGeneratedDocument.Views_Audio_Result        0%
   AspNetCoreGeneratedDocument.Views_Home_Index          0%
@@ -38,10 +38,10 @@ Quintessentia                                        20.6%
   Quintessentia.Services.AzureBlobMetadataService       0%
   Quintessentia.Services.AzureBlobStorageService        0%
   Quintessentia.Services.AzureOpenAIService             0%
-  Quintessentia.Services.CacheKeyService                0%
+  Quintessentia.Services.CacheKeyService              100%
   Quintessentia.Services.EpisodeQueryService            0%
-  Quintessentia.Services.LocalFileMetadataService       0%
-  Quintessentia.Services.LocalFileStorageService        0%
-  Quintessentia.Services.MockAzureOpenAIService         0%
+  Quintessentia.Services.LocalFileMetadataService      78%
+  Quintessentia.Services.LocalFileStorageService     87.2%
+  Quintessentia.Services.MockAzureOpenAIService       100%
   Quintessentia.Services.ProcessingProgressService      0%
-  Quintessentia.Services.StorageConfiguration           0%
+  Quintessentia.Services.StorageConfiguration         100%
