@@ -460,5 +460,233 @@ namespace Quintessentia.Tests.Controllers
             _episodeQueryServiceMock.Verify(e => e.GetEpisodeStreamAsync(It.IsAny<string>(), cts.Token), Times.Once);
         }
         #endregion
+
+        #region ProcessAndSummarizeStream Tests
+        [Fact]
+        public async Task ProcessAndSummarizeStream_WithNullUrl_SendsErrorStatus()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            // Act
+            await _controller.ProcessAndSummarizeStream(null!);
+
+            // Assert
+            httpContext.Response.Body.Position = 0;
+            var reader = new StreamReader(httpContext.Response.Body);
+            var output = await reader.ReadToEndAsync();
+            output.Should().Contain("error");
+            output.Should().Contain("MP3 URL is required");
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeStream_WithEmptyUrl_SendsErrorStatus()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            // Act
+            await _controller.ProcessAndSummarizeStream("");
+
+            // Assert
+            httpContext.Response.Body.Position = 0;
+            var reader = new StreamReader(httpContext.Response.Body);
+            var output = await reader.ReadToEndAsync();
+            output.Should().Contain("error");
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeStream_WithInvalidUrl_SendsErrorStatus()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            // Act
+            await _controller.ProcessAndSummarizeStream("not-a-valid-url");
+
+            // Assert
+            httpContext.Response.Body.Position = 0;
+            var reader = new StreamReader(httpContext.Response.Body);
+            var output = await reader.ReadToEndAsync();
+            output.Should().Contain("Invalid URL format");
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeStream_WithCustomSettings_AppliesSettings()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
+                .ReturnsAsync("/temp/episode.mp3");
+
+            // Act
+            await _controller.ProcessAndSummarizeStream(
+                testUrl,
+                settingsEndpoint: "https://custom.openai.azure.com/",
+                settingsTtsSpeedRatio: 1.5f
+            );
+
+            // Assert
+            var settings = httpContext.Items["AzureOpenAISettings"] as AzureOpenAISettings;
+            settings.Should().NotBeNull();
+            settings!.Endpoint.Should().Be("https://custom.openai.azure.com/");
+            settings.TtsSpeedRatio.Should().Be(1.5f);
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeStream_WhenDownloadFails_SendsErrorStatus()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string)null!);
+
+            // Act
+            await _controller.ProcessAndSummarizeStream(testUrl);
+
+            // Assert
+            httpContext.Response.Body.Position = 0;
+            var reader = new StreamReader(httpContext.Response.Body);
+            var output = await reader.ReadToEndAsync();
+            output.Should().Contain("error");
+            output.Should().Contain("Failed to download");
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeStream_WhenExceptionOccurs_SendsErrorStatus()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Test exception"));
+
+            // Act
+            await _controller.ProcessAndSummarizeStream(testUrl);
+
+            // Assert
+            httpContext.Response.Body.Position = 0;
+            var reader = new StreamReader(httpContext.Response.Body);
+            var output = await reader.ReadToEndAsync();
+            output.Should().Contain("error");
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarizeStream_SetsCorrectResponseHeaders()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var httpContext = new DefaultHttpContext();
+            httpContext.Response.Body = new MemoryStream();
+            _controller.ControllerContext.HttpContext = httpContext;
+
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string)null!);
+
+            // Act
+            await _controller.ProcessAndSummarizeStream(testUrl);
+
+            // Assert
+            httpContext.Response.Headers["Content-Type"].ToString().Should().Be("text/event-stream");
+            httpContext.Response.Headers["Cache-Control"].ToString().Should().Be("no-cache");
+            httpContext.Response.Headers["Connection"].ToString().Should().Be("keep-alive");
+        }
+        #endregion
+
+        #region ProcessAndSummarize Additional Tests
+        [Fact]
+        public async Task ProcessAndSummarize_WithAllCustomSettings_StoresAllSettings()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
+                .ReturnsAsync("/temp/episode.mp3");
+            _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync("/temp/summary.mp3");
+
+            // Act
+            var result = await _controller.ProcessAndSummarize(
+                testUrl,
+                settingsEndpoint: "https://custom.openai.azure.com/",
+                settingsKey: "custom-key",
+                settingsWhisperDeployment: "custom-whisper",
+                settingsGptDeployment: "custom-gpt",
+                settingsTtsDeployment: "custom-tts",
+                settingsTtsSpeedRatio: 1.5f,
+                settingsTtsResponseFormat: "wav",
+                settingsEnableAutoplay: true
+            );
+
+            // Assert
+            var settings = _controller.HttpContext.Items["AzureOpenAISettings"] as AzureOpenAISettings;
+            settings.Should().NotBeNull();
+            settings!.Endpoint.Should().Be("https://custom.openai.azure.com/");
+            settings.Key.Should().Be("custom-key");
+            settings.WhisperDeployment.Should().Be("custom-whisper");
+            settings.GptDeployment.Should().Be("custom-gpt");
+            settings.TtsDeployment.Should().Be("custom-tts");
+            settings.TtsSpeedRatio.Should().Be(1.5f);
+            settings.TtsResponseFormat.Should().Be("wav");
+            settings.EnableAutoplay.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarize_WithInvalidUrl_ReturnsBadRequest()
+        {
+            // Act
+            var result = await _controller.ProcessAndSummarize("invalid-url");
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarize_WhenGetOrDownloadReturnsNull_ReturnsBadRequest()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string)null!);
+
+            // Act
+            var result = await _controller.ProcessAndSummarize(testUrl);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+        }
+        #endregion
     }
 }
