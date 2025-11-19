@@ -1,0 +1,27 @@
+================================================================================
+Class Coverage Report: AudioController/<DownloadSummary>d__10
+================================================================================
+Generated: 2025-11-19 15:31:26
+Full Name: Quintessentia.Controllers.AudioController/<DownloadSummary>d__10
+Namespace: Quintessentia.Controllers
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       66.7% (8/12 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 3.3% improvement
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 67% (8/12 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.
+Improve coverage of 1 partially covered method(s).
+
+For detailed line-by-line coverage, see: Quintessentia_AudioController/<DownloadSummary>d__10.html
+
+================================================================================

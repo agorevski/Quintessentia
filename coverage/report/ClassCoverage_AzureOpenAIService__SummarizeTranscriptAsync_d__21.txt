@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService/<SummarizeTranscriptAsync>d__21
+================================================================================
+Generated: 2025-11-19 15:33:27
+Full Name: Quintessentia.Services.AzureOpenAIService/<SummarizeTranscriptAsync>d__21
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       14% (8/57 lines)
+Branch Coverage:     0% (0/2 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 56% improvement
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 14% (8/57 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<SummarizeTranscriptAsync>d__21.html
+
+================================================================================

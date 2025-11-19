@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService/<GenerateSpeechAsync>d__23
+================================================================================
+Generated: 2025-11-19 15:33:27
+Full Name: Quintessentia.Services.AzureOpenAIService/<GenerateSpeechAsync>d__23
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       61.4% (27/44 lines)
+Branch Coverage:     28.6% (8/28 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 8.6% improvement
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 61% (27/44 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<GenerateSpeechAsync>d__23.html
+
+================================================================================

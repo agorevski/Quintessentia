@@ -1,0 +1,23 @@
+================================================================================
+Class Coverage Report: AzureBlobMetadataService/<SummaryExistsAsync>d__11
+================================================================================
+Generated: 2025-11-19 15:31:26
+Full Name: Quintessentia.Services.AzureBlobMetadataService/<SummaryExistsAsync>d__11
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       100% (11/11 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       100% (1/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureBlobMetadataService/<SummaryExistsAsync>d__11.html
+
+================================================================================

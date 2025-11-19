@@ -1,0 +1,32 @@
+================================================================================
+Class Coverage Report: AzureBlobStorageService
+================================================================================
+Generated: 2025-11-19 15:31:26
+Full Name: Quintessentia.Services.AzureBlobStorageService
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       57.1% (12/21 lines)
+Branch Coverage:     50% (2/4 branches)
+Method Coverage:     50% (1/2 methods)
+Fully Covered:       0% (0/2 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 12.9% improvement
+
+UNCOVERED METHODS (1)
+--------------------------------------------------------------------------------  • GetContainerClient
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • .ctor: 92% (12/13 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.
+Focus on the 1 uncovered method(s) listed above.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureBlobStorageService.html
+
+================================================================================

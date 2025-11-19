@@ -1,0 +1,24 @@
+================================================================================
+Class Coverage Report: HomeController
+================================================================================
+Generated: 2025-11-19 15:33:27
+Full Name: Quintessentia.Controllers.HomeController
+Namespace: Quintessentia.Controllers
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       100% (13/13 lines)
+Branch Coverage:     75% (3/4 branches)
+Method Coverage:     100% (4/4 methods)
+Fully Covered:       100% (4/4 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_HomeController.html
+
+================================================================================

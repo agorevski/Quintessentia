@@ -1,0 +1,23 @@
+================================================================================
+Class Coverage Report: MockAzureOpenAIService/<CreateMinimalMp3FileAsync>d__7
+================================================================================
+Generated: 2025-11-19 15:31:26
+Full Name: Quintessentia.Services.MockAzureOpenAIService/<CreateMinimalMp3FileAsync>d__7
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       100% (14/14 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       100% (1/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+
+For detailed line-by-line coverage, see: Quintessentia_MockAzureOpenAIService/<CreateMinimalMp3FileAsync>d__7.html
+
+================================================================================

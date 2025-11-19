@@ -1,0 +1,23 @@
+================================================================================
+Class Coverage Report: AzureBlobMetadataService/<DeleteSummaryMetadataAsync>d__13
+================================================================================
+Generated: 2025-11-19 15:33:27
+Full Name: Quintessentia.Services.AzureBlobMetadataService/<DeleteSummaryMetadataAsync>d__13
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       100% (12/12 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       100% (1/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureBlobMetadataService/<DeleteSummaryMetadataAsync>d__13.html
+
+================================================================================

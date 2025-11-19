@@ -7,6 +7,7 @@ coverage/*
 !coverage/report/
 coverage/report/*
 !coverage/report/Summary.txt
+!coverage/report/ClassCoverage_*.txt
 **/TestResults/
 *.cobertura.xml
 *.coverage

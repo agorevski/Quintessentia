@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: AudioService
+================================================================================
+Generated: 2025-11-19 15:33:27
+Full Name: Quintessentia.Services.AudioService
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       73.3% (22/30 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     50% (2/4 methods)
+Fully Covered:       50% (2/4 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+UNCOVERED METHODS (2)
+--------------------------------------------------------------------------------  • GetCachedEpisodePath
+  • GetSummaryPath
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+Focus on the 2 uncovered method(s) listed above.
+
+For detailed line-by-line coverage, see: Quintessentia_AudioService.html
+
+================================================================================

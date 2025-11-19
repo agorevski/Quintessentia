@@ -1,0 +1,33 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService
+================================================================================
+Generated: 2025-11-19 15:31:26
+Full Name: Quintessentia.Services.AzureOpenAIService
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       52.1% (37/71 lines)
+Branch Coverage:     27.4% (17/62 branches)
+Method Coverage:     60% (3/5 methods)
+Fully Covered:       40% (2/5 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 17.9% improvement
+
+UNCOVERED METHODS (2)
+--------------------------------------------------------------------------------  • GetSTTClientAndDeployment
+  • GetGPTClientAndDeployment
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • GetTTSClientAndDeployment: 38% (5/13 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.
+Focus on the 2 uncovered method(s) listed above.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService.html
+
+================================================================================
