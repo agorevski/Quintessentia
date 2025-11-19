@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: MockAzureOpenAIService/<SummarizeTranscriptAsync>d__5
 ================================================================================
-Generated: 2025-11-19 15:33:27
+Generated: 2025-11-19 15:56:21
 Full Name: Quintessentia.Services.MockAzureOpenAIService/<SummarizeTranscriptAsync>d__5
 Namespace: Quintessentia.Services
 

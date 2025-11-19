@@ -1,25 +1,25 @@
 Summary
-  Generated on: 11/19/2025 - 3:33:25 PM
-  Coverage date: 11/19/2025 - 3:33:22 PM
+  Generated on: 11/19/2025 - 3:56:20 PM
+  Coverage date: 11/19/2025 - 3:56:16 PM
   Parser: Cobertura
   Assemblies: 1
   Classes: 25
   Files: 25
-  Line coverage: 70%
-  Covered lines: 1402
-  Uncovered lines: 600
+  Line coverage: 76.5%
+  Covered lines: 1532
+  Uncovered lines: 470
   Coverable lines: 2002
   Total lines: 3697
-  Branch coverage: 55.3% (250 of 452)
-  Covered branches: 250
+  Branch coverage: 68.1% (308 of 452)
+  Covered branches: 308
   Total branches: 452
-  Method coverage: 82.5% (128 of 155)
-  Full method coverage: 63.2% (98 of 155)
-  Covered methods: 128
-  Fully covered methods: 98
+  Method coverage: 85.8% (133 of 155)
+  Full method coverage: 65.1% (101 of 155)
+  Covered methods: 133
+  Fully covered methods: 101
   Total methods: 155
 
-Quintessentia                                          70%
+Quintessentia                                        76.5%
   AspNetCoreGeneratedDocument.Views__ViewStart          0%
   AspNetCoreGeneratedDocument.Views_Audio_Result        0%
   AspNetCoreGeneratedDocument.Views_Home_Index          0%
@@ -37,7 +37,7 @@ Quintessentia                                          70%
   Quintessentia.Services.AudioService                93.6%
   Quintessentia.Services.AzureBlobMetadataService     100%
   Quintessentia.Services.AzureBlobStorageService     20.8%
-  Quintessentia.Services.AzureOpenAIService          24.2%
+  Quintessentia.Services.AzureOpenAIService          62.2%
   Quintessentia.Services.CacheKeyService              100%
   Quintessentia.Services.EpisodeQueryService         99.1%
   Quintessentia.Services.LocalFileMetadataService      78%

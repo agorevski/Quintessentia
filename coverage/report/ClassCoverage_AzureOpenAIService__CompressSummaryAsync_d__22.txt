@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: AzureOpenAIService/<CompressSummaryAsync>d__22
 ================================================================================
-Generated: 2025-11-19 15:33:27
+Generated: 2025-11-19 15:56:21
 Full Name: Quintessentia.Services.AzureOpenAIService/<CompressSummaryAsync>d__22
 Namespace: Quintessentia.Services
 
