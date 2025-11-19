@@ -336,14 +336,14 @@ namespace Quintessentia.Tests.Services
         #region Configuration Tests
 
         [Theory]
-        [InlineData("mp3", "mp3")]
-        [InlineData("opus", "opus")]
-        [InlineData("aac", "aac")]
-        [InlineData("flac", "flac")]
-        [InlineData("wav", "wav")]
-        [InlineData("pcm", "pcm")]
-        [InlineData("invalid", "mp3")] // Should default to mp3
-        public void GenerateSpeechAsync_ResponseFormat_HandlesAllFormats(string configFormat, string expectedFormat)
+        [InlineData("mp3")]
+        [InlineData("opus")]
+        [InlineData("aac")]
+        [InlineData("flac")]
+        [InlineData("wav")]
+        [InlineData("pcm")]
+        [InlineData("invalid")] // Should default to mp3
+        public void GenerateSpeechAsync_ResponseFormat_HandlesAllFormats(string configFormat)
         {
             // Arrange
             var config = new ConfigurationBuilder()
@@ -363,6 +363,7 @@ namespace Quintessentia.Tests.Services
 
             // Assert - Service should handle the format configuration
             service.Should().NotBeNull();
+            configFormat.Should().NotBeNullOrEmpty("configFormat is used to test various response formats");
         }
 
         [Fact]

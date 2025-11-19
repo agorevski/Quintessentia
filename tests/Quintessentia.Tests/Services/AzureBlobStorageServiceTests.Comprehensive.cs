@@ -67,7 +67,7 @@ namespace Quintessentia.Tests.Services
         #region UploadStreamAsync Tests
 
         [Fact]
-        public async Task UploadStreamAsync_WithValidStream_ResetsStreamPosition()
+        public void UploadStreamAsync_WithValidStream_ResetsStreamPosition()
         {
             // This test validates stream position behavior
             // Actual Azure calls will fail without valid connection, but we can verify the setup
@@ -83,7 +83,7 @@ namespace Quintessentia.Tests.Services
         #region ExistsAsync Tests
 
         [Fact]
-        public async Task ExistsAsync_WithException_ReturnsFalse()
+        public void ExistsAsync_WithException_ReturnsFalse()
         {
             // The service catches exceptions in ExistsAsync and returns false
             // We can verify this behavior exists in the implementation

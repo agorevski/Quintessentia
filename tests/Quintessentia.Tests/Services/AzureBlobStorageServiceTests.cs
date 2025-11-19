@@ -72,7 +72,7 @@ namespace Quintessentia.Tests.Services
         #region UploadStreamAsync Tests
 
         [Fact]
-        public async Task UploadStreamAsync_ResetsStreamPosition_BeforeUpload()
+        public void UploadStreamAsync_ResetsStreamPosition_BeforeUpload()
         {
             // Arrange
             var stream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
@@ -88,7 +88,7 @@ namespace Quintessentia.Tests.Services
         #region UploadFileAsync Tests
 
         [Fact]
-        public async Task UploadFileAsync_WithNonExistentFile_ThrowsException()
+        public void UploadFileAsync_WithNonExistentFile_ThrowsException()
         {
             // Note: We can't fully test this without a valid Azure connection
             // but we can verify the basic setup
@@ -101,7 +101,7 @@ namespace Quintessentia.Tests.Services
         #region DownloadToFileAsync Tests
 
         [Fact]
-        public async Task DownloadToFileAsync_CreatesDirectory_WhenNotExists()
+        public void DownloadToFileAsync_CreatesDirectory_WhenNotExists()
         {
             // Arrange
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -121,7 +121,7 @@ namespace Quintessentia.Tests.Services
         #region ExistsAsync Tests
 
         [Fact]
-        public async Task ExistsAsync_WithException_ReturnsFalse()
+        public void ExistsAsync_WithException_ReturnsFalse()
         {
             // This tests the error handling path where exceptions return false
             // We can't fully test without mocking the Azure client
@@ -189,7 +189,7 @@ namespace Quintessentia.Tests.Services
         #region Stream Handling Tests
 
         [Fact]
-        public async Task DownloadToStreamAsync_ResetsStreamPosition_AfterDownload()
+        public void DownloadToStreamAsync_ResetsStreamPosition_AfterDownload()
         {
             // Test that stream position is reset for reading
             using var stream = new MemoryStream();
@@ -216,7 +216,7 @@ namespace Quintessentia.Tests.Services
         #region CancellationToken Tests
 
         [Fact]
-        public async Task Methods_SupportCancellationToken()
+        public void Methods_SupportCancellationToken()
         {
             // Verify cancellation token is passed through
             var cts = new CancellationTokenSource();
