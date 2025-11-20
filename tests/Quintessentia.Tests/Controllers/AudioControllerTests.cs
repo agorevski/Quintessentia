@@ -618,6 +618,127 @@ namespace Quintessentia.Tests.Controllers
         }
         #endregion
 
+        #region TrimNonAlphanumeric Integration Tests
+
+        [Fact]
+        public async Task ProcessAndSummarize_TrimsSummaryText_RemovingNonAlphanumeric()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var cacheKey = "testcachekey";
+            var tempDir = Path.GetTempPath();
+            var episodePath = Path.Combine(tempDir, $"{cacheKey}.mp3");
+            var summaryTextPath = Path.Combine(tempDir, $"{cacheKey}_summary.txt");
+
+            try
+            {
+                // Create temp files
+                Directory.CreateDirectory(tempDir);
+                File.WriteAllText(episodePath, "temp");
+                File.WriteAllText(summaryTextPath, "***This is a summary!***");
+
+                _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>())).Returns(cacheKey);
+                _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>())).ReturnsAsync(episodePath);
+                _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("/temp/summary.mp3");
+
+                // Act
+                var result = await _controller.ProcessAndSummarize(testUrl);
+
+                // Assert
+                var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+                var model = viewResult.Model.Should().BeOfType<AudioProcessResult>().Subject;
+                model.SummaryText.Should().Be("This is a summary!");
+            }
+            finally
+            {
+                // Cleanup
+                if (File.Exists(episodePath)) File.Delete(episodePath);
+                if (File.Exists(summaryTextPath)) File.Delete(summaryTextPath);
+            }
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarize_TrimsSummaryText_HandlesAllNonAlphanumeric()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var cacheKey = "testcachekey";
+            var tempDir = Path.GetTempPath();
+            var episodePath = Path.Combine(tempDir, $"{cacheKey}.mp3");
+            var summaryTextPath = Path.Combine(tempDir, $"{cacheKey}_summary.txt");
+
+            try
+            {
+                // Create temp files
+                Directory.CreateDirectory(tempDir);
+                File.WriteAllText(episodePath, "temp");
+                File.WriteAllText(summaryTextPath, "***!!!???");
+
+                _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>())).Returns(cacheKey);
+                _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>())).ReturnsAsync(episodePath);
+                _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("/temp/summary.mp3");
+
+                // Act
+                var result = await _controller.ProcessAndSummarize(testUrl);
+
+                // Assert
+                var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+                var model = viewResult.Model.Should().BeOfType<AudioProcessResult>().Subject;
+                model.SummaryText.Should().BeEmpty();
+            }
+            finally
+            {
+                // Cleanup
+                if (File.Exists(episodePath)) File.Delete(episodePath);
+                if (File.Exists(summaryTextPath)) File.Delete(summaryTextPath);
+            }
+        }
+
+        [Fact]
+        public async Task ProcessAndSummarize_HandlesEmptySummaryText()
+        {
+            // Arrange
+            var testUrl = "https://example.com/test.mp3";
+            var cacheKey = "testcachekey";
+            var tempDir = Path.GetTempPath();
+            var episodePath = Path.Combine(tempDir, $"{cacheKey}.mp3");
+            var summaryTextPath = Path.Combine(tempDir, $"{cacheKey}_summary.txt");
+
+            try
+            {
+                // Create temp files
+                Directory.CreateDirectory(tempDir);
+                File.WriteAllText(episodePath, "temp");
+                File.WriteAllText(summaryTextPath, "");
+
+                _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>())).Returns(cacheKey);
+                _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+                _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>())).ReturnsAsync(episodePath);
+                _audioServiceMock.Setup(a => a.ProcessAndSummarizeEpisodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("/temp/summary.mp3");
+
+                // Act
+                var result = await _controller.ProcessAndSummarize(testUrl);
+
+                // Assert
+                var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+                var model = viewResult.Model.Should().BeOfType<AudioProcessResult>().Subject;
+                model.SummaryText.Should().BeEmpty();
+            }
+            finally
+            {
+                // Cleanup
+                if (File.Exists(episodePath)) File.Delete(episodePath);
+                if (File.Exists(summaryTextPath)) File.Delete(summaryTextPath);
+            }
+        }
+
+        #endregion
+
         #region ProcessAndSummarize Additional Tests
         [Fact]
         public async Task ProcessAndSummarize_WithAllCustomSettings_StoresAllSettings()

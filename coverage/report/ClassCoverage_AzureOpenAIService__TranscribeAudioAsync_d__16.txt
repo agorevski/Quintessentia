@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: AzureOpenAIService/<TranscribeAudioAsync>d__16
 ================================================================================
-Generated: 2025-11-19 15:56:21
+Generated: 2025-11-19 20:49:51
 Full Name: Quintessentia.Services.AzureOpenAIService/<TranscribeAudioAsync>d__16
 Namespace: Quintessentia.Services
 

@@ -390,5 +390,106 @@ namespace Quintessentia.Tests.Services
                 _audioService.ProcessAndSummarizeEpisodeAsync(episodeId, null, cts.Token));
         }
         #endregion
+
+        #region GetCachedEpisodePath Tests
+
+        [Fact]
+        public void GetCachedEpisodePath_ReturnsCorrectTempPath()
+        {
+            // Arrange
+            var episodeId = "https://example.com/test.mp3";
+            var expectedCacheKey = "test-cache-key";
+
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(episodeId)).Returns(expectedCacheKey);
+
+            // Act
+            var result = _audioService.GetCachedEpisodePath(episodeId);
+
+            // Assert
+            result.Should().NotBeNullOrEmpty();
+            result.Should().Contain(expectedCacheKey);
+            result.Should().EndWith(".mp3");
+            result.Should().Contain("audio_");
+        }
+
+        [Fact]
+        public void GetCachedEpisodePath_WithDifferentUrls_ReturnsDifferentPaths()
+        {
+            // Arrange
+            var url1 = "https://example.com/episode1.mp3";
+            var url2 = "https://example.com/episode2.mp3";
+
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(url1)).Returns("cache-key-1");
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(url2)).Returns("cache-key-2");
+
+            // Act
+            var path1 = _audioService.GetCachedEpisodePath(url1);
+            var path2 = _audioService.GetCachedEpisodePath(url2);
+
+            // Assert
+            path1.Should().NotBe(path2);
+        }
+
+        #endregion
+
+        #region GetSummaryPath Tests
+
+        [Fact]
+        public void GetSummaryPath_ReturnsCorrectTempPath()
+        {
+            // Arrange
+            var episodeId = "https://example.com/test.mp3";
+            var expectedCacheKey = "test-cache-key";
+
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(episodeId)).Returns(expectedCacheKey);
+
+            // Act
+            var result = _audioService.GetSummaryPath(episodeId);
+
+            // Assert
+            result.Should().NotBeNullOrEmpty();
+            result.Should().Contain(expectedCacheKey);
+            result.Should().EndWith("_summary.mp3");
+            result.Should().Contain("audio_");
+        }
+
+        [Fact]
+        public void GetSummaryPath_WithDifferentUrls_ReturnsDifferentPaths()
+        {
+            // Arrange
+            var url1 = "https://example.com/episode1.mp3";
+            var url2 = "https://example.com/episode2.mp3";
+
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(url1)).Returns("cache-key-1");
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(url2)).Returns("cache-key-2");
+
+            // Act
+            var path1 = _audioService.GetSummaryPath(url1);
+            var path2 = _audioService.GetSummaryPath(url2);
+
+            // Assert
+            path1.Should().NotBe(path2);
+        }
+
+        [Fact]
+        public void GetSummaryPath_DifferentFromEpisodePath()
+        {
+            // Arrange
+            var episodeId = "https://example.com/test.mp3";
+            var cacheKey = "test-cache-key";
+
+            _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(episodeId)).Returns(cacheKey);
+
+            // Act
+            var episodePath = _audioService.GetCachedEpisodePath(episodeId);
+            var summaryPath = _audioService.GetSummaryPath(episodeId);
+
+            // Assert
+            episodePath.Should().NotBe(summaryPath);
+            episodePath.Should().EndWith(".mp3");
+            summaryPath.Should().EndWith("_summary.mp3");
+        }
+
+        #endregion
     }
 }

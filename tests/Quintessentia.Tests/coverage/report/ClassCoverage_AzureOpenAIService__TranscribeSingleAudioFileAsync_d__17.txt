@@ -1,26 +1,26 @@
 ================================================================================
 Class Coverage Report: AzureOpenAIService/<TranscribeSingleAudioFileAsync>d__17
 ================================================================================
-Generated: 2025-11-19 15:31:26
+Generated: 2025-11-19 16:29:25
 Full Name: Quintessentia.Services.AzureOpenAIService/<TranscribeSingleAudioFileAsync>d__17
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       0% (0/14 lines)
+Line Coverage:       71.4% (10/14 lines)
 Branch Coverage:     100% (0/0 branches)
-Method Coverage:     0% (0/1 methods)
+Method Coverage:     100% (1/1 methods)
 Fully Covered:       0% (0/1 methods)
 
 STATUS
---------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 70% improvement
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
 
-UNCOVERED METHODS (1)
---------------------------------------------------------------------------------  • MoveNext
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 71% (10/14 lines)
 
 RECOMMENDATIONS
---------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
-Focus on the 1 uncovered method(s) listed above.
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+Improve coverage of 1 partially covered method(s).
 
 For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<TranscribeSingleAudioFileAsync>d__17.html
 

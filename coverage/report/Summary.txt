@@ -1,40 +1,40 @@
 Summary
-  Generated on: 11/19/2025 - 3:56:20 PM
-  Coverage date: 11/19/2025 - 3:56:16 PM
+  Generated on: 11/19/2025 - 8:49:49 PM
+  Coverage date: 11/19/2025 - 8:49:45 PM
   Parser: Cobertura
   Assemblies: 1
   Classes: 25
   Files: 25
-  Line coverage: 76.5%
-  Covered lines: 1532
-  Uncovered lines: 470
+  Line coverage: 79%
+  Covered lines: 1583
+  Uncovered lines: 419
   Coverable lines: 2002
   Total lines: 3697
-  Branch coverage: 68.1% (308 of 452)
-  Covered branches: 308
+  Branch coverage: 74.1% (335 of 452)
+  Covered branches: 335
   Total branches: 452
-  Method coverage: 85.8% (133 of 155)
-  Full method coverage: 65.1% (101 of 155)
-  Covered methods: 133
-  Fully covered methods: 101
+  Method coverage: 89% (138 of 155)
+  Full method coverage: 69% (107 of 155)
+  Covered methods: 138
+  Fully covered methods: 107
   Total methods: 155
 
-Quintessentia                                        76.5%
+Quintessentia                                          79%
   AspNetCoreGeneratedDocument.Views__ViewStart          0%
   AspNetCoreGeneratedDocument.Views_Audio_Result        0%
   AspNetCoreGeneratedDocument.Views_Home_Index          0%
   AspNetCoreGeneratedDocument.Views_Home_Privacy        0%
   AspNetCoreGeneratedDocument.Views_Shared_Error        0%
   Program                                               0%
-  Quintessentia.Controllers.AudioController          81.1%
+  Quintessentia.Controllers.AudioController          86.7%
   Quintessentia.Controllers.HomeController            100%
   Quintessentia.Models.AudioEpisode                   100%
-  Quintessentia.Models.AudioProcessResult            91.6%
+  Quintessentia.Models.AudioProcessResult             100%
   Quintessentia.Models.AudioSummary                   100%
   Quintessentia.Models.AzureOpenAISettings            100%
   Quintessentia.Models.ErrorViewModel                 100%
   Quintessentia.Models.ProcessingStatus               100%
-  Quintessentia.Services.AudioService                93.6%
+  Quintessentia.Services.AudioService                96.8%
   Quintessentia.Services.AzureBlobMetadataService     100%
   Quintessentia.Services.AzureBlobStorageService     20.8%
   Quintessentia.Services.AzureOpenAIService          62.2%
@@ -43,5 +43,5 @@ Quintessentia                                        76.5%
   Quintessentia.Services.LocalFileMetadataService      78%
   Quintessentia.Services.LocalFileStorageService     87.2%
   Quintessentia.Services.MockAzureOpenAIService       100%
-  Quintessentia.Services.ProcessingProgressService   85.3%
+  Quintessentia.Services.ProcessingProgressService    100%
   Quintessentia.Services.StorageConfiguration         100%
