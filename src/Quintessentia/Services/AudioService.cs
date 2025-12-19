@@ -1,3 +1,4 @@
+using Quintessentia.Constants;
 using Quintessentia.Models;
 using Quintessentia.Services.Contracts;
 
@@ -200,7 +201,7 @@ namespace Quintessentia.Services
                     {
                         Stage = "complete",
                         Message = "Summary retrieved from cache",
-                        Progress = 100,
+                        Progress = ProcessingProgress.Complete,
                         IsComplete = true,
                         EpisodeId = cacheKey,
                         SummaryAudioPath = tempSummaryPath
@@ -225,7 +226,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "transcribing",
                     Message = "Transcribing audio to text using Azure Whisper...",
-                    Progress = 25,
+                    Progress = ProcessingProgress.Transcribing,
                     EpisodeId = cacheKey
                 });
 
@@ -246,7 +247,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "transcribed",
                     Message = $"Transcription complete ({transcriptWordCount:N0} words)",
-                    Progress = 40,
+                    Progress = ProcessingProgress.Transcribed,
                     EpisodeId = cacheKey,
                     TranscriptWordCount = transcriptWordCount
                 });
@@ -257,7 +258,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "summarizing",
                     Message = "Summarizing transcript with GPT-5...",
-                    Progress = 50,
+                    Progress = ProcessingProgress.Summarizing,
                     EpisodeId = cacheKey,
                     TranscriptWordCount = transcriptWordCount
                 });
@@ -278,7 +279,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "summarized",
                     Message = $"Summary complete ({summaryWordCount:N0} words)",
-                    Progress = 70,
+                    Progress = ProcessingProgress.Summarized,
                     EpisodeId = cacheKey,
                     TranscriptWordCount = transcriptWordCount,
                     SummaryWordCount = summaryWordCount,
@@ -291,7 +292,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "generating-speech",
                     Message = "Generating speech from summary using GPT-4o-mini-tts...",
-                    Progress = 80,
+                    Progress = ProcessingProgress.GeneratingSpeech,
                     EpisodeId = cacheKey,
                     TranscriptWordCount = transcriptWordCount,
                     SummaryWordCount = summaryWordCount,
@@ -329,7 +330,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "complete",
                     Message = "Processing complete!",
-                    Progress = 100,
+                    Progress = ProcessingProgress.Complete,
                     IsComplete = true,
                     EpisodeId = cacheKey,
                     TranscriptWordCount = transcriptWordCount,
@@ -348,7 +349,7 @@ namespace Quintessentia.Services
                 {
                     Stage = "error",
                     Message = "Processing failed",
-                    Progress = 0,
+                    Progress = ProcessingProgress.Error,
                     IsError = true,
                     ErrorMessage = ex.Message,
                     EpisodeId = cacheKey

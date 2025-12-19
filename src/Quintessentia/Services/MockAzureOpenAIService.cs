@@ -1,3 +1,4 @@
+using Quintessentia.Constants;
 using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
@@ -10,7 +11,6 @@ namespace Quintessentia.Services
     {
         private readonly ILogger<MockAzureOpenAIService> _logger;
         private readonly IWebHostEnvironment _environment;
-        private const int MOCK_DELAY_MS = 2000; // 2 seconds
 
         public MockAzureOpenAIService(ILogger<MockAzureOpenAIService> logger, IWebHostEnvironment environment)
         {
@@ -24,7 +24,7 @@ namespace Quintessentia.Services
             _logger.LogInformation("[MOCK] Starting transcription for file: {FilePath}", audioFilePath);
             
             // Simulate processing delay
-            await Task.Delay(MOCK_DELAY_MS, cancellationToken);
+            await Task.Delay(AudioProcessingConstants.MockDelayMs, cancellationToken);
 
             var transcript = @"Welcome to this episode of Tech Insights. Today we're diving deep into the world of artificial intelligence and machine learning. 
             The landscape of AI has changed dramatically over the past few years. What once seemed like science fiction is now becoming an integral part of our daily lives. From voice assistants to recommendation systems, AI is everywhere.
@@ -47,7 +47,7 @@ namespace Quintessentia.Services
             _logger.LogInformation("[MOCK] Starting summarization. Transcript length: {Length} characters", transcript.Length);
             
             // Simulate processing delay
-            await Task.Delay(MOCK_DELAY_MS, cancellationToken);
+            await Task.Delay(AudioProcessingConstants.MockDelayMs, cancellationToken);
 
             var summary = @"This episode of Tech Insights provides a comprehensive overview of artificial intelligence and machine learning, exploring how these technologies have evolved from science fiction concepts to integral parts of modern life.
             The discussion begins with fundamentals, explaining that machine learning is a subset of AI focused on building systems that learn from data rather than explicit programming. Three main types are covered: supervised learning with labeled data, unsupervised learning that finds patterns in unlabeled data, and reinforcement learning that trains agents through reward-based decision making.
@@ -71,7 +71,7 @@ namespace Quintessentia.Services
             _logger.LogInformation("[MOCK] Starting text-to-speech generation. Text length: {Length} characters", text.Length);
             
             // Simulate processing delay
-            await Task.Delay(MOCK_DELAY_MS, cancellationToken);
+            await Task.Delay(AudioProcessingConstants.MockDelayMs, cancellationToken);
 
             // Ensure directory exists
             var directory = Path.GetDirectoryName(outputFilePath);

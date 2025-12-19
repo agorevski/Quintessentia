@@ -5,6 +5,7 @@ using OpenAI.Chat;
 using System.ClientModel;
 using System.Diagnostics;
 using System.Text;
+using Quintessentia.Constants;
 using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
@@ -20,10 +21,6 @@ namespace Quintessentia.Services
         private readonly string _sttDeployment;
         private readonly string _gptDeployment;
         private readonly string _ttsDeployment;
-        
-        // Azure OpenAI Whisper API has a 25MB file size limit - use smaller files to get all of the results faster
-        private const long MAX_AUDIO_FILE_SIZE = 5 * 1024 * 1024; // 5MB to leave buffer
-        private const int CHUNK_OVERLAP_SECONDS = 1; // Overlap to avoid losing words at boundaries
 
         public AzureOpenAIService(ILogger<AzureOpenAIService> logger, IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
         {
@@ -140,9 +137,9 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Audio file size: {Size} bytes ({SizeMB:F2} MB)", fileSize, fileSize / (1024.0 * 1024.0));
 
                 // Check if file exceeds size limit
-                if (fileSize > MAX_AUDIO_FILE_SIZE)
+                if (fileSize > AudioProcessingConstants.MaxAudioFileSizeBytes)
                 {
-                    _logger.LogWarning("File size ({Size} bytes) exceeds limit ({Limit} bytes). Will process in chunks.", fileSize, MAX_AUDIO_FILE_SIZE);
+                    _logger.LogWarning("File size ({Size} bytes) exceeds limit ({Limit} bytes). Will process in chunks.", fileSize, AudioProcessingConstants.MaxAudioFileSizeBytes);
                     return await TranscribeAudioInChunksAsync(audioFilePath, cancellationToken);
                 }
 
@@ -193,7 +190,7 @@ namespace Quintessentia.Services
 
                 // Calculate chunk duration based on file size
                 var fileSize = new FileInfo(audioFilePath).Length;
-                var chunkDuration = (int)((MAX_AUDIO_FILE_SIZE / (double)fileSize) * duration * 0.9); // 90% of max to be safe
+                var chunkDuration = (int)((AudioProcessingConstants.MaxAudioFileSizeBytes / (double)fileSize) * duration * 0.9); // 90% of max to be safe
                 
                 // Ensure reasonable chunk size (at least 60 seconds, max 600 seconds)
                 chunkDuration = Math.Max(60, Math.Min(chunkDuration, 600));
@@ -306,8 +303,8 @@ namespace Quintessentia.Services
                 var chunkFile = Path.Combine(outputDirectory, $"chunk_{i:D3}.mp3");
                 
                 // Use FFmpeg to extract chunk with slight overlap
-                var actualStart = Math.Max(0, startTime - (i > 0 ? CHUNK_OVERLAP_SECONDS : 0));
-                var chunkDuration = chunkDurationSeconds + (i > 0 ? CHUNK_OVERLAP_SECONDS : 0);
+                var actualStart = Math.Max(0, startTime - (i > 0 ? AudioProcessingConstants.ChunkOverlapSeconds : 0));
+                var chunkDuration = chunkDurationSeconds + (i > 0 ? AudioProcessingConstants.ChunkOverlapSeconds : 0);
 
                 var startInfo = new ProcessStartInfo
                 {

@@ -77,28 +77,7 @@ catch (Exception ex)
 
 ## 🟡 Medium Severity
 
-### 4. Magic Numbers and Strings
-**Locations:**
-- `src/Quintessentia/Services/AzureOpenAIService.cs` (line 25): `MAX_AUDIO_FILE_SIZE = 5 * 1024 * 1024`
-- `src/Quintessentia/Services/AzureOpenAIService.cs` (line 26): `CHUNK_OVERLAP_SECONDS = 1`
-- `src/Quintessentia/Services/MockAzureOpenAIService.cs` (line 14): `MOCK_DELAY_MS = 2000`
-- Various: `Progress = 10`, `Progress = 20`, `Progress = 25`, etc.
-
-**Problem:** Magic numbers scattered throughout code without context.
-
-**Impact:**
-- Hard to understand significance of values
-- Difficult to maintain when requirements change
-- No single source of truth for configuration
-
-**Recommendation:**
-- Move to configuration (`appsettings.json`)
-- Or define as named constants with documentation
-- Consider creating a `ProgressStages` enum or constants class
-
----
-
-### 5. HttpContext.Items for Cross-Cutting Concerns
+### 4. HttpContext.Items for Cross-Cutting Concerns
 **Location:** `src/Quintessentia/Controllers/AudioController.cs` (lines 175, 392)
 
 **Problem:** Using `HttpContext.Items` to pass settings between controller and services.
@@ -119,7 +98,7 @@ HttpContext.Items["AzureOpenAISettings"] = customSettings;
 
 ---
 
-### 6. Missing Input Validation/Sanitization
+### 5. Missing Input Validation/Sanitization
 **Locations:** 
 - `src/Quintessentia/Controllers/AudioController.cs` - Audio URL not validated for SSRF
 - `src/Quintessentia/Services/CacheKeyService.cs` - URL used directly if not HTTP(S)
@@ -144,7 +123,7 @@ if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) ||
 
 ---
 
-### 7. Inconsistent Async Patterns
+### 6. Inconsistent Async Patterns
 **Locations:**
 - `src/Quintessentia/Services/LocalFileStorageService.cs` (lines 158-170, 173-192, 194-214)
 - `src/Quintessentia/Services/LocalFileMetadataService.cs` (lines 101-116, 161-176)
@@ -171,7 +150,7 @@ public Task<bool> ExistsAsync(...)
 
 ---
 
-### 8. Lack of Request Timeout Configuration
+### 7. Lack of Request Timeout Configuration
 **Location:** `src/Quintessentia/Services/AudioService.cs`
 
 **Problem:** No explicit timeout for downloading external audio files.
@@ -194,7 +173,7 @@ using var response = await _httpClient.GetAsync(url, HttpCompletionOption.Respon
 
 ## 🟢 Low Severity / Code Smells
 
-### 9. Missing Null-Coalescing Improvements
+### 8. Missing Null-Coalescing Improvements
 **Location:** Various
 
 **Problem:** Verbose null checks that could use modern C# patterns.
@@ -211,7 +190,7 @@ if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
 
 ---
 
-### 10. Primitive Obsession for Stage Names
+### 9. Primitive Obsession for Stage Names
 **Locations:** `src/Quintessentia/Models/ProcessingStatus.cs`, `src/Quintessentia/Controllers/AudioController.cs`
 
 **Problem:** Using strings for stage names like `"downloading"`, `"transcribing"`, `"error"`.
@@ -231,7 +210,7 @@ Stage = "transcribing"
 
 ---
 
-### 11. Missing XML Documentation on Public APIs
+### 10. Missing XML Documentation on Public APIs
 **Location:** Throughout `Services/Contracts/` interfaces
 
 **Problem:** Most interface methods lack XML documentation except `IAudioService.cs`.
@@ -247,7 +226,7 @@ Stage = "transcribing"
 
 ---
 
-### 12. Inconsistent Error Response Formats
+### 11. Inconsistent Error Response Formats
 **Location:** `src/Quintessentia/Controllers/AudioController.cs`
 
 **Problem:** Mix of `BadRequest()`, `View("Error", ...)`, `NotFound()` for similar error conditions.
@@ -270,7 +249,7 @@ return View("Error", new ErrorViewModel { Message = "..." });
 
 ---
 
-### 13. Missing Dependency Injection for JsonSerializerOptions
+### 12. Missing Dependency Injection for JsonSerializerOptions
 **Locations:** 
 - `src/Quintessentia/Services/LocalFileMetadataService.cs`
 - `src/Quintessentia/Services/AzureBlobMetadataService.cs`
@@ -288,7 +267,7 @@ return View("Error", new ErrorViewModel { Message = "..." });
 
 ---
 
-### 14. Tight Coupling to File System in Services
+### 13. Tight Coupling to File System in Services
 **Location:** `src/Quintessentia/Services/AudioService.cs`, `ProcessingProgressService.cs`
 
 **Problem:** Direct `File.Exists()` and `Path.Combine()` calls in services.
@@ -308,7 +287,7 @@ if (System.IO.File.Exists(summaryTextPath))
 
 ---
 
-### 15. Potential Resource Leaks in Streams
+### 14. Potential Resource Leaks in Streams
 **Location:** `src/Quintessentia/Services/EpisodeQueryService.cs` (lines 119-124, 147-151)
 
 **Problem:** MemoryStream created and returned without clear ownership for disposal.
@@ -336,7 +315,7 @@ return stream;
 |----------|-------|------------|
 | 🔴 Critical | 1 | Hardcoded secrets |
 | 🟠 High | 2 | Generic exception handling, god controller |
-| 🟡 Medium | 5 | Magic numbers, HttpContext coupling, input validation, async patterns, timeouts |
+| 🟡 Medium | 4 | HttpContext coupling, input validation, async patterns, timeouts |
 | 🟢 Low | 7 | Documentation, enums, error formats, DI patterns |
 
 ---

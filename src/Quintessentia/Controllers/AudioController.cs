@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Quintessentia.Constants;
 using Quintessentia.Models;
 using Quintessentia.Services.Contracts;
 using Quintessentia.Utilities;
@@ -358,7 +359,7 @@ namespace Quintessentia.Controllers
                 {
                     Stage = "downloading",
                     Message = wasCached ? "Retrieving episode from cache..." : "Downloading episode...",
-                    Progress = 10,
+                    Progress = ProcessingProgress.Downloading,
                     EpisodeId = cacheKey,
                     WasCached = wasCached
                 });
@@ -382,7 +383,7 @@ namespace Quintessentia.Controllers
                 {
                     Stage = "downloaded",
                     Message = wasCached ? "Episode retrieved from cache" : "Episode downloaded",
-                    Progress = 20,
+                    Progress = ProcessingProgress.Downloaded,
                     EpisodeId = cacheKey,
                     FilePath = episodePath,
                     WasCached = wasCached
@@ -429,7 +430,7 @@ namespace Quintessentia.Controllers
                 {
                     Stage = "complete",
                     Message = "Processing complete!",
-                    Progress = 100,
+                    Progress = ProcessingProgress.Complete,
                     IsComplete = true,
                     EpisodeId = cacheKey,
                     FilePath = episodePath,

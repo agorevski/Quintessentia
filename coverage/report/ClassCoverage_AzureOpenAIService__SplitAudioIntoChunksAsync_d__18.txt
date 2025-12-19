@@ -1,0 +1,27 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService/<SplitAudioIntoChunksAsync>d__18
+================================================================================
+Generated: 2025-12-19 11:03:59
+Full Name: Quintessentia.Services.AzureOpenAIService/<SplitAudioIntoChunksAsync>d__18
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       0% (0/36 lines)
+Branch Coverage:     0% (0/14 branches)
+Method Coverage:     0% (0/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 70% improvement
+
+UNCOVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
+Focus on the 1 uncovered method(s) listed above.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<SplitAudioIntoChunksAsync>d__18.html
+
+================================================================================

@@ -1,0 +1,27 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService/<TranscribeAudioAsync>d__14
+================================================================================
+Generated: 2025-12-19 11:03:59
+Full Name: Quintessentia.Services.AzureOpenAIService/<TranscribeAudioAsync>d__14
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       95% (19/20 lines)
+Branch Coverage:     100% (4/4 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 95% (19/20 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+Improve coverage of 1 partially covered method(s).
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<TranscribeAudioAsync>d__14.html
+
+================================================================================

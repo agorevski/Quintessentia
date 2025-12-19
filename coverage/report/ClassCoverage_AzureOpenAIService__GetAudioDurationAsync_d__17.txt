@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService/<GetAudioDurationAsync>d__17
+================================================================================
+Generated: 2025-12-19 11:03:59
+Full Name: Quintessentia.Services.AzureOpenAIService/<GetAudioDurationAsync>d__17
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       72% (18/25 lines)
+Branch Coverage:     33.3% (2/6 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 72% (18/25 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<GetAudioDurationAsync>d__17.html
+
+================================================================================

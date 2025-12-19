@@ -1,0 +1,27 @@
+================================================================================
+Class Coverage Report: AzureOpenAIService/<TranscribeAudioInChunksAsync>d__16
+================================================================================
+Generated: 2025-12-19 11:03:59
+Full Name: Quintessentia.Services.AzureOpenAIService/<TranscribeAudioInChunksAsync>d__16
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       35.6% (16/45 lines)
+Branch Coverage:     50% (2/4 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 34.4% improvement
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 36% (16/45 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
+Improve coverage of 1 partially covered method(s).
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIService/<TranscribeAudioInChunksAsync>d__16.html
+
+================================================================================
