@@ -1,32 +1,32 @@
 Summary
-  Generated on: 11/19/2025 - 8:49:49 PM
-  Coverage date: 11/19/2025 - 8:49:45 PM
+  Generated on: 12/19/2025 - 10:16:47 AM
+  Coverage date: 12/19/2025 - 10:16:44 AM
   Parser: Cobertura
   Assemblies: 1
-  Classes: 25
-  Files: 25
-  Line coverage: 79%
-  Covered lines: 1583
-  Uncovered lines: 419
-  Coverable lines: 2002
-  Total lines: 3697
-  Branch coverage: 74.1% (335 of 452)
-  Covered branches: 335
-  Total branches: 452
-  Method coverage: 89% (138 of 155)
-  Full method coverage: 69% (107 of 155)
-  Covered methods: 138
+  Classes: 26
+  Files: 26
+  Line coverage: 77.9%
+  Covered lines: 1545
+  Uncovered lines: 437
+  Coverable lines: 1982
+  Total lines: 3676
+  Branch coverage: 72.6% (314 of 432)
+  Covered branches: 314
+  Total branches: 432
+  Method coverage: 88.2% (135 of 153)
+  Full method coverage: 69.9% (107 of 153)
+  Covered methods: 135
   Fully covered methods: 107
-  Total methods: 155
+  Total methods: 153
 
-Quintessentia                                          79%
+Quintessentia                                        77.9%
   AspNetCoreGeneratedDocument.Views__ViewStart          0%
   AspNetCoreGeneratedDocument.Views_Audio_Result        0%
   AspNetCoreGeneratedDocument.Views_Home_Index          0%
   AspNetCoreGeneratedDocument.Views_Home_Privacy        0%
   AspNetCoreGeneratedDocument.Views_Shared_Error        0%
   Program                                               0%
-  Quintessentia.Controllers.AudioController          86.7%
+  Quintessentia.Controllers.AudioController          86.1%
   Quintessentia.Controllers.HomeController            100%
   Quintessentia.Models.AudioEpisode                   100%
   Quintessentia.Models.AudioProcessResult             100%
@@ -36,12 +36,13 @@ Quintessentia                                          79%
   Quintessentia.Models.ProcessingStatus               100%
   Quintessentia.Services.AudioService                96.8%
   Quintessentia.Services.AzureBlobMetadataService     100%
-  Quintessentia.Services.AzureBlobStorageService     20.8%
+  Quintessentia.Services.AzureBlobStorageService     13.1%
   Quintessentia.Services.AzureOpenAIService          62.2%
   Quintessentia.Services.CacheKeyService              100%
-  Quintessentia.Services.EpisodeQueryService         99.1%
+  Quintessentia.Services.EpisodeQueryService          100%
   Quintessentia.Services.LocalFileMetadataService      78%
   Quintessentia.Services.LocalFileStorageService     87.2%
   Quintessentia.Services.MockAzureOpenAIService       100%
   Quintessentia.Services.ProcessingProgressService    100%
   Quintessentia.Services.StorageConfiguration         100%
+  Quintessentia.Utilities.TextHelper                  100%

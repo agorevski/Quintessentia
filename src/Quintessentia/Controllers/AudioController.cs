@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Quintessentia.Models;
 using Quintessentia.Services.Contracts;
+using Quintessentia.Utilities;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text;
@@ -193,7 +194,7 @@ namespace Quintessentia.Controllers
 
                 if (System.IO.File.Exists(summaryTextPath))
                 {
-                    summaryText = TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath));
+                    summaryText = TextHelper.TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath));
                     summaryWordCount = summaryText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 }
 
@@ -413,7 +414,7 @@ namespace Quintessentia.Controllers
 
                 if (System.IO.File.Exists(summaryTextPath))
                 {
-                    summaryText = TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath, cancellationToken));
+                    summaryText = TextHelper.TrimNonAlphanumeric(await System.IO.File.ReadAllTextAsync(summaryTextPath, cancellationToken));
                     summaryWordCount = summaryText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 }
 
@@ -476,29 +477,6 @@ namespace Quintessentia.Controllers
             
             await Response.Body.WriteAsync(bytes);
             await Response.Body.FlushAsync();
-        }
-
-        private string TrimNonAlphanumeric(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return text;
-
-            // Find first alphanumeric character from the start
-            int start = 0;
-            while (start < text.Length && !char.IsLetterOrDigit(text[start]))
-            {
-                start++;
-            }
-
-            // Find last alphanumeric character from the end
-            int end = text.Length - 1;
-            while (end >= start && !char.IsLetterOrDigit(text[end]))
-            {
-                end--;
-            }
-
-            // Return trimmed substring
-            return start <= end ? text.Substring(start, end - start + 1) : string.Empty;
         }
 
     }

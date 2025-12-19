@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: ErrorViewModel
 ================================================================================
-Generated: 2025-11-19 15:33:27
+Generated: 2025-12-19 10:16:48
 Full Name: Quintessentia.Models.ErrorViewModel
 Namespace: Quintessentia.Models
 

@@ -9,6 +9,9 @@ namespace Quintessentia.Services
         private readonly BlobServiceClient _blobServiceClient;
         private readonly ILogger<AzureBlobStorageService> _logger;
         private readonly Dictionary<string, BlobContainerClient> _containerClients;
+        private readonly SemaphoreSlim _initLock = new(1, 1);
+        private readonly string[] _containerNames;
+        private bool _initialized;
 
         public AzureBlobStorageService(
             IConfiguration configuration,
@@ -16,7 +19,7 @@ namespace Quintessentia.Services
         {
             var connectionString = configuration["AzureStorageConnectionString"];
             
-            if (string.IsNullOrEmpty(connectionString))
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException("Azure Storage connection string is not configured.");
             }
@@ -24,39 +27,53 @@ namespace Quintessentia.Services
             _blobServiceClient = new BlobServiceClient(connectionString);
             _logger = logger;
             _containerClients = new Dictionary<string, BlobContainerClient>();
-
-            // Initialize containers
-            InitializeContainersAsync(configuration).GetAwaiter().GetResult();
-        }
-
-        private async Task InitializeContainersAsync(IConfiguration configuration)
-        {
-            var containerNames = new[]
+            
+            // Store container names for lazy initialization
+            _containerNames = new[]
             {
                 configuration["AzureStorage:Containers:Episodes"] ?? "episodes",
                 configuration["AzureStorage:Containers:Transcripts"] ?? "transcripts",
                 configuration["AzureStorage:Containers:Summaries"] ?? "summaries"
             };
+        }
 
-            foreach (var containerName in containerNames)
+        private async Task EnsureInitializedAsync(CancellationToken cancellationToken = default)
+        {
+            if (_initialized) return;
+
+            await _initLock.WaitAsync(cancellationToken);
+            try
             {
-                try
+                if (_initialized) return;
+
+                foreach (var containerName in _containerNames)
                 {
-                    var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-                    await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
-                    _containerClients[containerName] = containerClient;
-                    _logger.LogInformation("Initialized blob container: {ContainerName}", containerName);
+                    try
+                    {
+                        var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+                        await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+                        _containerClients[containerName] = containerClient;
+                        _logger.LogInformation("Initialized blob container: {ContainerName}", containerName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error initializing container: {ContainerName}", containerName);
+                        throw;
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error initializing container: {ContainerName}", containerName);
-                    throw;
-                }
+
+                _initialized = true;
+            }
+            finally
+            {
+                _initLock.Release();
             }
         }
 
-        private BlobContainerClient GetContainerClient(string containerName)
+        private async Task<BlobContainerClient> GetContainerClientAsync(string containerName, CancellationToken cancellationToken = default)
         {
+            await EnsureInitializedAsync(cancellationToken);
+            
             if (_containerClients.TryGetValue(containerName, out var client))
             {
                 return client;
@@ -72,7 +89,7 @@ namespace Quintessentia.Services
         {
             try
             {
-                var containerClient = GetContainerClient(containerName);
+                var containerClient = await GetContainerClientAsync(containerName, cancellationToken);
                 var blobClient = containerClient.GetBlobClient(blobName);
 
                 stream.Position = 0; // Reset stream position
@@ -107,7 +124,7 @@ namespace Quintessentia.Services
         {
             try
             {
-                var containerClient = GetContainerClient(containerName);
+                var containerClient = await GetContainerClientAsync(containerName, cancellationToken);
                 var blobClient = containerClient.GetBlobClient(blobName);
 
                 await blobClient.DownloadToAsync(targetStream, cancellationToken);
@@ -127,7 +144,7 @@ namespace Quintessentia.Services
         {
             try
             {
-                var containerClient = GetContainerClient(containerName);
+                var containerClient = await GetContainerClientAsync(containerName, cancellationToken);
                 var blobClient = containerClient.GetBlobClient(blobName);
 
                 // Ensure directory exists
@@ -154,7 +171,7 @@ namespace Quintessentia.Services
         {
             try
             {
-                var containerClient = GetContainerClient(containerName);
+                var containerClient = await GetContainerClientAsync(containerName, cancellationToken);
                 var blobClient = containerClient.GetBlobClient(blobName);
 
                 var response = await blobClient.ExistsAsync(cancellationToken);
@@ -172,7 +189,7 @@ namespace Quintessentia.Services
         {
             try
             {
-                var containerClient = GetContainerClient(containerName);
+                var containerClient = await GetContainerClientAsync(containerName, cancellationToken);
                 var blobClient = containerClient.GetBlobClient(blobName);
 
                 await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
@@ -190,7 +207,7 @@ namespace Quintessentia.Services
         {
             try
             {
-                var containerClient = GetContainerClient(containerName);
+                var containerClient = await GetContainerClientAsync(containerName, cancellationToken);
                 var blobClient = containerClient.GetBlobClient(blobName);
 
                 var properties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);

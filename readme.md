@@ -6,7 +6,7 @@
 
 Quintessentia processes audio episodes through a complete AI pipeline:
 
-1. **Download & Cache** - Downloads MP3 audio episodes from direct URLs and caches them locally for efficient reprocessing
+1. **Download & Cache** - Downloads MP3 audio episodes from direct URLs and caches them in Azure Blob Storage (or locally in development)
 2. **Transcribe** - Converts audio to text using Azure OpenAI Whisper
 3. **Summarize** - Uses GPT to intelligently condense the transcript to approximately 5 minutes of content
 4. **Generate Audio** - Creates a new audio file of the summary using text-to-speech (TTS)
@@ -15,163 +15,89 @@ The result is an audio episode "boiled down" to its bare essence - perfect for q
 
 ## Project Structure
 
-### Controllers/
+```
+src/Quintessentia/
+├── Controllers/          # MVC controllers
+├── Models/               # Data models and view models
+├── Services/             # Business logic services
+│   └── Contracts/        # Service interfaces
+├── Utilities/            # Shared helper utilities
+├── Views/                # Razor views
+└── wwwroot/              # Static files (CSS, JS, images)
 
-- **HomeController.cs** - Serves the landing page and handles basic navigation
-- **AudioController.cs** - Main processing endpoints:
-  - `Process` - Download-only endpoint (no AI processing)
-  - `ProcessAndSummarize` - Full AI pipeline endpoint
-  - `ProcessAndSummarizeStream` - Server-Sent Events (SSE) endpoint for real-time progress updates
-  - `Result` - Displays processing results with audio playback
+tests/Quintessentia.Tests/
+├── Controllers/          # Controller tests
+├── Models/               # Model tests
+└── Services/             # Service tests
+```
 
-### Services/
+### Key Components
 
-- **AudioService.cs** - Core orchestration service:
-  - Episode download and caching (SHA-256 hash-based cache keys)
-  - MP3 file streaming and storage
-  - Full AI processing pipeline coordination
-  - Progress callback system for real-time status updates
-- **AzureOpenAIService.cs** - Azure OpenAI integration:
-  - Audio transcription using Whisper
-  - Transcript summarization using GPT
-  - Speech generation using TTS (text-to-speech)
-- **IAudioService.cs** & **IAzureOpenAIService.cs** - Service interfaces
-
-### Models/
-
-- **ProcessingStatus.cs** - Real-time processing status for SSE streaming
-- **PodcastProcessResult.cs** - Complete processing result data
-- **ErrorViewModel.cs** - Error page model
-
-### Views/
-
-- **Home/Index.cshtml** - Main landing page with audio URL input form and real-time progress tracking
-- **Audio/Result.cshtml** - Results page displaying transcript, summary text, and audio players
-- **Shared/_Layout.cshtml** - Application layout template
-- **Shared/Error.cshtml** - Error page
-
-### wwwroot/
-
-- **css/** - Custom stylesheets (site.css)
-- **js/** - Client-side JavaScript (site.js)
-- **lib/** - Third-party libraries:
-  - Bootstrap 5 (UI framework)
-  - jQuery (DOM manipulation)
-  - Bootstrap Icons (icon library)
+- **AudioController** - Main processing endpoints including SSE streaming for real-time progress
+- **AudioService** - Core orchestration for episode download, caching, and AI pipeline
+- **AzureOpenAIService** - Azure OpenAI integration for transcription, summarization, and TTS
+- **StorageService** - Abstraction for Azure Blob Storage (production) or local file storage (development)
+- **TextHelper** - Shared text manipulation utilities
 
 ## Key Features
 
 ### Real-Time Progress Tracking
 
-The application uses Server-Sent Events (SSE) to stream processing status updates to the client in real-time. Users can watch as their audio moves through each stage:
-
-- Downloading
-- Transcribing
-- Summarizing
-- Generating speech
+The application uses Server-Sent Events (SSE) to stream processing status updates to the client in real-time.
 
 ### Intelligent Caching
 
 - **Episode Cache**: Original MP3 files are cached using SHA-256 hashes of their URLs
 - **Summary Cache**: Processed summaries are cached to avoid reprocessing
-- **Cache Location**: `%LocalAppData%\SpotifySummarizer\PodcastCache`
+- **Storage**: Azure Blob Storage (production) or local file system (development)
 
-### Flexible Processing Options
+### Environment-Based Services
 
-- **Full Pipeline**: Download → Transcribe → Summarize → Generate Audio
-- **Download Only**: Just cache the original MP3 without AI processing
+- **Development**: Uses mock services for faster iteration without Azure costs
+- **Production**: Uses real Azure services (Blob Storage, OpenAI)
 
 ## Technology Stack
 
-- **.NET 9** - Latest version of the .NET framework
-- **ASP.NET Core MVC** - Web application framework
-- **Azure OpenAI** - AI services for transcription, summarization, and TTS
-- **Bootstrap 5** - Responsive UI framework
-- **Server-Sent Events (SSE)** - Real-time progress updates
-- **C# 12** - Programming language
+- **.NET 9** / **C# 12**
+- **ASP.NET Core MVC**
+- **Azure OpenAI** - Whisper, GPT, and TTS models
+- **Azure Blob Storage** - Episode and summary caching
+- **Bootstrap 5** - Responsive UI
+- **Server-Sent Events (SSE)** - Real-time progress
 - **xUnit** - Testing framework
-- **Coverlet** - Code coverage collection
-- **ReportGenerator** - Coverage report generation
+- **Coverlet** - Code coverage
 
 ## Setup Requirements
 
-To run Quintessentia, you need:
-
 1. **.NET 9 SDK** installed
-2. **Azure OpenAI** credentials configured in `appsettings.json`:
-   - Endpoint URL
-   - API Key
-   - Deployment names for Whisper, GPT, and TTS models
+2. **Azure OpenAI** credentials configured via environment variables or `appsettings.json`
+3. **Azure Storage** connection string (for production)
 
-```cmd
-az login --tenant 8a106375-957e-4690-978b-a81220e49845
-```
-
-See `README_AZURE_SETUP.md` for detailed Azure OpenAI configuration instructions.
+> ⚠️ **Security Note**: Never commit secrets to source control. Use environment variables, Azure Key Vault, or user secrets for sensitive configuration.
 
 ## Running the Application
 
 ```bash
-dotnet run
+dotnet run --project src/Quintessentia
 ```
 
-The application will start on `https://localhost` (port assigned by Kestrel). Navigate to the homepage, paste a direct MP3 URL, and click "Process & Summarize" to begin.
+Navigate to `https://localhost:{port}`, paste a direct MP3 URL, and click "Process & Summarize".
 
 ## Testing & Code Coverage
 
-Quintessentia maintains a **minimum of 70% code coverage** for all releases.
-
-### Running Tests
+Quintessentia maintains a **minimum of 70% code coverage**.
 
 ```bash
 # Run all tests
 dotnet test
 
-# Run tests with coverage (automatically happens on Debug builds)
-dotnet build
-```
-
-### Generate Coverage Reports
-
-```powershell
-# Generate detailed HTML coverage report
+# Generate coverage report
 .\scripts\generate-coverage.ps1
-
-# View existing coverage report
-.\scripts\view-coverage.ps1
 ```
 
-### Coverage Features
+## Documentation
 
-- **Automatic Post-Build Coverage**: Coverage is collected automatically when building in Debug configuration
-- **CI/CD Enforcement**: GitHub Actions enforces the 70% minimum threshold on all PRs and merges
-- **Detailed Reports**: HTML reports show line-by-line coverage with risk hotspot analysis
-- **Real-Time Feedback**: Build output includes coverage statistics
-
-For detailed information about code coverage, see [Code Coverage Guidelines](docs/CODE_COVERAGE.md).
-
-### Testing Documentation
-
-- [Test Project README](tests/Quintessentia.Tests/README.md) - Testing architecture and patterns
-- [Manual UX Test Checklist](tests/Quintessentia.Tests/MANUAL_UX_TEST_CHECKLIST.md) - User experience testing guide
-- [Code Coverage Guidelines](docs/CODE_COVERAGE.md) - Complete coverage documentation
-
-## Output Files
-
-For each processed audio episode (identified by cache key), the following files are created in the cache directory:
-
-- `{episodeId}.mp3` - Original downloaded episode
-- `{episodeId}_transcript.txt` - Full text transcription
-- `{episodeId}_summary.txt` - Summarized text (target: ~5 minutes)
-- `{episodeId}_summary.mp3` - Generated audio of the summary
-
-## Future Enhancements
-
-Potential improvements for Quintessentia:
-
-- Support for streaming service URLs with automatic MP3 extraction
-- Customizable summary lengths
-- Multiple voice options for TTS
-- Batch processing of multiple episodes
-- RSS feed integration
-- Summary highlights and key takeaways extraction
+- [Code Coverage Guidelines](docs/CODE_COVERAGE.md)
+- [Test Project README](tests/Quintessentia.Tests/README.md)
+- [Manual UX Test Checklist](tests/Quintessentia.Tests/MANUAL_UX_TEST_CHECKLIST.md)
+- [Anti-Patterns Analysis](ANTI-PATTERNS.md)

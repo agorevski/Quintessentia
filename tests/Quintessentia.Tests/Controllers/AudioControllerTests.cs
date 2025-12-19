@@ -635,7 +635,7 @@ namespace Quintessentia.Tests.Controllers
                 // Create temp files
                 Directory.CreateDirectory(tempDir);
                 File.WriteAllText(episodePath, "temp");
-                File.WriteAllText(summaryTextPath, "***This is a summary!***");
+                File.WriteAllText(summaryTextPath, "***This is a summary***");
 
                 _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>())).Returns(cacheKey);
                 _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
@@ -649,7 +649,7 @@ namespace Quintessentia.Tests.Controllers
                 // Assert
                 var viewResult = result.Should().BeOfType<ViewResult>().Subject;
                 var model = viewResult.Model.Should().BeOfType<AudioProcessResult>().Subject;
-                model.SummaryText.Should().Be("This is a summary!");
+                model.SummaryText.Should().Be("This is a summary");
             }
             finally
             {

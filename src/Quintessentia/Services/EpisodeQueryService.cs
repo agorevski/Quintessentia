@@ -1,5 +1,6 @@
 using Quintessentia.Models;
 using Quintessentia.Services.Contracts;
+using Quintessentia.Utilities;
 
 namespace Quintessentia.Services
 {
@@ -66,7 +67,7 @@ namespace Quintessentia.Services
                         summaryTextStream.Position = 0;
                         using var reader = new StreamReader(summaryTextStream);
                         var rawSummaryText = await reader.ReadToEndAsync(cancellationToken);
-                        summaryText = TrimNonAlphanumeric(rawSummaryText);
+                        summaryText = TextHelper.TrimNonAlphanumeric(rawSummaryText);
                         summaryWordCount = summaryMetadata.SummaryWordCount;
                         transcriptWordCount = summaryMetadata.TranscriptWordCount;
                     }
@@ -149,29 +150,6 @@ namespace Quintessentia.Services
             stream.Position = 0;
 
             return stream;
-        }
-
-        private string TrimNonAlphanumeric(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return text;
-
-            // Find first alphanumeric character from the start
-            int start = 0;
-            while (start < text.Length && !char.IsLetterOrDigit(text[start]))
-            {
-                start++;
-            }
-
-            // Find last alphanumeric character from the end
-            int end = text.Length - 1;
-            while (end >= start && !char.IsLetterOrDigit(text[end]))
-            {
-                end--;
-            }
-
-            // Return trimmed substring
-            return start <= end ? text.Substring(start, end - start + 1) : string.Empty;
         }
     }
 }
