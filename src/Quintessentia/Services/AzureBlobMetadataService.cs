@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Azure;
 using Quintessentia.Models;
 using Quintessentia.Services.Contracts;
 
@@ -53,9 +54,14 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Retrieved episode metadata for cache key: {CacheKey}", cacheKey);
                 return episode;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error retrieving episode metadata for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error retrieving episode metadata for cache key: {CacheKey}", cacheKey);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error for episode metadata cache key: {CacheKey}", cacheKey);
                 return null;
             }
         }
@@ -75,9 +81,14 @@ namespace Quintessentia.Services
                 
                 _logger.LogInformation("Saved episode metadata for cache key: {CacheKey}", episode.CacheKey);
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error saving episode metadata for cache key: {CacheKey}", episode.CacheKey);
+                _logger.LogError(ex, "Azure storage error saving episode metadata for cache key: {CacheKey}", episode.CacheKey);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON serialization error for episode metadata cache key: {CacheKey}", episode.CacheKey);
                 throw;
             }
         }
@@ -94,9 +105,9 @@ namespace Quintessentia.Services
                 
                 return audioExists && metadataExists;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error checking episode existence for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error checking episode existence for cache key: {CacheKey}", cacheKey);
                 return false;
             }
         }
@@ -122,9 +133,14 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Retrieved summary metadata for cache key: {CacheKey}", cacheKey);
                 return summary;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error retrieving summary metadata for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error retrieving summary metadata for cache key: {CacheKey}", cacheKey);
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error for summary metadata cache key: {CacheKey}", cacheKey);
                 return null;
             }
         }
@@ -144,9 +160,14 @@ namespace Quintessentia.Services
                 
                 _logger.LogInformation("Saved summary metadata for cache key: {CacheKey}", cacheKey);
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error saving summary metadata for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error saving summary metadata for cache key: {CacheKey}", cacheKey);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON serialization error for summary metadata cache key: {CacheKey}", cacheKey);
                 throw;
             }
         }
@@ -163,9 +184,9 @@ namespace Quintessentia.Services
                 
                 return audioExists && metadataExists;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error checking summary existence for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error checking summary existence for cache key: {CacheKey}", cacheKey);
                 return false;
             }
         }
@@ -182,9 +203,9 @@ namespace Quintessentia.Services
                 
                 _logger.LogInformation("Deleted episode metadata for cache key: {CacheKey}", cacheKey);
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error deleting episode metadata for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error deleting episode metadata for cache key: {CacheKey}", cacheKey);
                 throw;
             }
         }
@@ -201,9 +222,9 @@ namespace Quintessentia.Services
                 
                 _logger.LogInformation("Deleted summary metadata for cache key: {CacheKey}", cacheKey);
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error deleting summary metadata for cache key: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "Azure storage error deleting summary metadata for cache key: {CacheKey}", cacheKey);
                 throw;
             }
         }

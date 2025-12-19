@@ -146,9 +146,19 @@ namespace Quintessentia.Services
                 // Process single file
                 return await TranscribeSingleAudioFileAsync(audioFilePath, cancellationToken);
             }
-            catch (Exception ex)
+            catch (FileNotFoundException ex)
             {
-                _logger.LogError(ex, "Error transcribing audio file: {FilePath}", audioFilePath);
+                _logger.LogError(ex, "Audio file not found: {FilePath}", audioFilePath);
+                throw;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error transcribing audio file: {FilePath}", audioFilePath);
+                throw;
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogError(ex, "Azure OpenAI error transcribing audio file: {FilePath}", audioFilePath);
                 throw;
             }
         }
@@ -407,9 +417,14 @@ Provide your summary below:";
 
                 return summary;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error summarizing transcript");
+                _logger.LogError(ex, "Azure OpenAI error summarizing transcript");
+                throw;
+            }
+            catch (ClientResultException ex)
+            {
+                _logger.LogError(ex, "Client error summarizing transcript");
                 throw;
             }
         }
@@ -497,9 +512,19 @@ Provide the compressed version:";
 
                 return outputFilePath;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error generating speech from text");
+                _logger.LogError(ex, "Azure OpenAI error generating speech from text");
+                throw;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error saving generated speech to file");
+                throw;
+            }
+            catch (ClientResultException ex)
+            {
+                _logger.LogError(ex, "Client error generating speech from text");
                 throw;
             }
         }

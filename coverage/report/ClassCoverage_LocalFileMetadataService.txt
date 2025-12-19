@@ -1,13 +1,13 @@
 ================================================================================
 Class Coverage Report: LocalFileMetadataService
 ================================================================================
-Generated: 2025-12-19 11:03:59
+Generated: 2025-12-19 11:21:34
 Full Name: Quintessentia.Services.LocalFileMetadataService
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       82.2% (74/90 lines)
+Line Coverage:       75.5% (74/98 lines)
 Branch Coverage:     90% (9/10 branches)
 Method Coverage:     100% (8/8 methods)
 Fully Covered:       50% (4/8 methods)
@@ -18,8 +18,8 @@ STATUS
 PARTIALLY COVERED METHODS (4)
 --------------------------------------------------------------------------------  • EpisodeExistsAsync: 64% (7/11 lines)
   • SummaryExistsAsync: 64% (7/11 lines)
-  • DeleteEpisodeMetadataAsync: 78% (14/18 lines)
-  • DeleteSummaryMetadataAsync: 78% (14/18 lines)
+  • DeleteEpisodeMetadataAsync: 64% (14/22 lines)
+  • DeleteSummaryMetadataAsync: 64% (14/22 lines)
 
 RECOMMENDATIONS
 --------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.

@@ -1,13 +1,13 @@
 ================================================================================
 Class Coverage Report: LocalFileStorageService
 ================================================================================
-Generated: 2025-12-19 11:03:59
+Generated: 2025-12-19 11:21:34
 Full Name: Quintessentia.Services.LocalFileStorageService
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       87.7% (64/73 lines)
+Line Coverage:       83.1% (64/77 lines)
 Branch Coverage:     77.8% (14/18 branches)
 Method Coverage:     100% (6/6 methods)
 Fully Covered:       66.7% (4/6 methods)
@@ -17,7 +17,7 @@ STATUS
 
 PARTIALLY COVERED METHODS (2)
 --------------------------------------------------------------------------------  • ExistsAsync: 50% (5/10 lines)
-  • DeleteAsync: 73% (11/15 lines)
+  • DeleteAsync: 58% (11/19 lines)
 
 RECOMMENDATIONS
 --------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.

@@ -102,7 +102,7 @@ namespace Quintessentia.Tests.Services
 
             _storageServiceMock
                 .Setup(s => s.ExistsAsync("episodes", $"{cacheKey}.json", It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Storage error"));
+                .ThrowsAsync(new Azure.RequestFailedException("Storage error"));
 
             // Act
             var result = await _service.GetEpisodeMetadataAsync(cacheKey);
@@ -242,7 +242,7 @@ namespace Quintessentia.Tests.Services
 
             _storageServiceMock
                 .Setup(s => s.ExistsAsync("episodes", $"{cacheKey}.mp3", It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Storage error"));
+                .ThrowsAsync(new Azure.RequestFailedException("Storage error"));
 
             // Act
             var result = await _service.EpisodeExistsAsync(cacheKey);
@@ -322,7 +322,7 @@ namespace Quintessentia.Tests.Services
 
             _storageServiceMock
                 .Setup(s => s.ExistsAsync("summaries", $"{cacheKey}_summary.json", It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Storage error"));
+                .ThrowsAsync(new Azure.RequestFailedException("Storage error"));
 
             // Act
             var result = await _service.GetSummaryMetadataAsync(cacheKey);
@@ -433,7 +433,7 @@ namespace Quintessentia.Tests.Services
 
             _storageServiceMock
                 .Setup(s => s.ExistsAsync("summaries", $"{cacheKey}_summary.mp3", It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Storage error"));
+                .ThrowsAsync(new Azure.RequestFailedException("Storage error"));
 
             // Act
             var result = await _service.SummaryExistsAsync(cacheKey);
@@ -567,6 +567,111 @@ namespace Quintessentia.Tests.Services
 
             // Assert
             service.Should().NotBeNull();
+        }
+
+        #endregion
+
+        #region Specific Exception Type Tests
+
+        [Fact]
+        public async Task GetEpisodeMetadataAsync_WhenJsonExceptionOccurs_ReturnsNull()
+        {
+            // Arrange
+            var cacheKey = "json-error-key";
+
+            _storageServiceMock
+                .Setup(s => s.ExistsAsync("episodes", $"{cacheKey}.json", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _storageServiceMock
+                .Setup(s => s.DownloadToStreamAsync("episodes", $"{cacheKey}.json", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, Stream, CancellationToken>((container, blob, stream, ct) =>
+                {
+                    var bytes = Encoding.UTF8.GetBytes("invalid json {{{");
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Position = 0;
+                })
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _service.GetEpisodeMetadataAsync(cacheKey);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetSummaryMetadataAsync_WhenJsonExceptionOccurs_ReturnsNull()
+        {
+            // Arrange
+            var cacheKey = "json-error-key";
+
+            _storageServiceMock
+                .Setup(s => s.ExistsAsync("summaries", $"{cacheKey}_summary.json", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            _storageServiceMock
+                .Setup(s => s.DownloadToStreamAsync("summaries", $"{cacheKey}_summary.json", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, Stream, CancellationToken>((container, blob, stream, ct) =>
+                {
+                    var bytes = Encoding.UTF8.GetBytes("not valid json");
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Position = 0;
+                })
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _service.GetSummaryMetadataAsync(cacheKey);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task SaveEpisodeMetadataAsync_WhenRequestFailedExceptionOccurs_Throws()
+        {
+            // Arrange
+            var episode = new AudioEpisode
+            {
+                CacheKey = "test-key",
+                OriginalUrl = "https://example.com/audio.mp3",
+                DownloadDate = DateTime.UtcNow
+            };
+
+            _storageServiceMock
+                .Setup(s => s.UploadStreamAsync("episodes", $"{episode.CacheKey}.json", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Azure.RequestFailedException("Upload failed"));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<Azure.RequestFailedException>(() => _service.SaveEpisodeMetadataAsync(episode));
+        }
+
+        [Fact]
+        public async Task DeleteEpisodeMetadataAsync_WhenRequestFailedExceptionOccurs_Throws()
+        {
+            // Arrange
+            var cacheKey = "test-key";
+
+            _storageServiceMock
+                .Setup(s => s.DeleteAsync("episodes", $"{cacheKey}.mp3", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Azure.RequestFailedException("Delete failed"));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<Azure.RequestFailedException>(() => _service.DeleteEpisodeMetadataAsync(cacheKey));
+        }
+
+        [Fact]
+        public async Task DeleteSummaryMetadataAsync_WhenRequestFailedExceptionOccurs_Throws()
+        {
+            // Arrange
+            var cacheKey = "test-key";
+
+            _storageServiceMock
+                .Setup(s => s.DeleteAsync("summaries", $"{cacheKey}_summary.mp3", It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Azure.RequestFailedException("Delete failed"));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<Azure.RequestFailedException>(() => _service.DeleteSummaryMetadataAsync(cacheKey));
         }
 
         #endregion

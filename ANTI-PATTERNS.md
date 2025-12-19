@@ -12,7 +12,7 @@ This document catalogs development anti-patterns found in the Quintessentia code
 **Problem:** Azure Storage connection strings and API keys are committed to source control.
 
 ```json
-"AzureStorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=quintessentia;AccountKey=bfMS0gurTk7xIaKnSofe/1o1D7S61Sk79rZFuy378yMIw0xyr5zUstt0OpWL+wL8j8dkM7VVvKE2+AStltxqpA==;..."
+"AzureStorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=quintessentia;AccountKey=xxxxxxxx..."
 "Key": "xxxxxx"
 ```
 
@@ -27,32 +27,7 @@ This document catalogs development anti-patterns found in the Quintessentia code
 
 ## 🟠 High Severity
 
-### 2. Excessive Exception Catching with Generic Exception Handler
-**Locations:** Throughout the codebase (46+ instances across service files)
-
-**Problem:** Most methods catch `Exception ex` broadly rather than specific exception types.
-
-```csharp
-catch (Exception ex)
-{
-    _logger.LogError(ex, "Error...");
-    throw;
-}
-```
-
-**Impact:**
-- May catch and mask unexpected exceptions
-- Makes debugging harder when non-recoverable exceptions are logged as recoverable
-- Reduces ability to handle specific failure modes
-
-**Recommendation:**
-- Catch specific exceptions (`RequestFailedException`, `JsonException`, `IOException`)
-- Let unexpected exceptions bubble up naturally
-- Use exception filters when appropriate
-
----
-
-### 3. God Controller - AudioController
+### 2. God Controller - AudioController
 **Location:** `src/Quintessentia/Controllers/AudioController.cs` (~485 lines)
 
 **Problem:** Single controller handles too many responsibilities:
@@ -77,7 +52,7 @@ catch (Exception ex)
 
 ## 🟡 Medium Severity
 
-### 4. HttpContext.Items for Cross-Cutting Concerns
+### 3. HttpContext.Items for Cross-Cutting Concerns
 **Location:** `src/Quintessentia/Controllers/AudioController.cs` (lines 175, 392)
 
 **Problem:** Using `HttpContext.Items` to pass settings between controller and services.
@@ -98,7 +73,7 @@ HttpContext.Items["AzureOpenAISettings"] = customSettings;
 
 ---
 
-### 5. Missing Input Validation/Sanitization
+### 4. Missing Input Validation/Sanitization
 **Locations:** 
 - `src/Quintessentia/Controllers/AudioController.cs` - Audio URL not validated for SSRF
 - `src/Quintessentia/Services/CacheKeyService.cs` - URL used directly if not HTTP(S)
@@ -123,7 +98,7 @@ if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) ||
 
 ---
 
-### 6. Inconsistent Async Patterns
+### 5. Inconsistent Async Patterns
 **Locations:**
 - `src/Quintessentia/Services/LocalFileStorageService.cs` (lines 158-170, 173-192, 194-214)
 - `src/Quintessentia/Services/LocalFileMetadataService.cs` (lines 101-116, 161-176)
@@ -150,7 +125,7 @@ public Task<bool> ExistsAsync(...)
 
 ---
 
-### 7. Lack of Request Timeout Configuration
+### 6. Lack of Request Timeout Configuration
 **Location:** `src/Quintessentia/Services/AudioService.cs`
 
 **Problem:** No explicit timeout for downloading external audio files.
@@ -173,7 +148,7 @@ using var response = await _httpClient.GetAsync(url, HttpCompletionOption.Respon
 
 ## 🟢 Low Severity / Code Smells
 
-### 8. Missing Null-Coalescing Improvements
+### 7. Missing Null-Coalescing Improvements
 **Location:** Various
 
 **Problem:** Verbose null checks that could use modern C# patterns.
@@ -190,7 +165,7 @@ if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
 
 ---
 
-### 9. Primitive Obsession for Stage Names
+### 8. Primitive Obsession for Stage Names
 **Locations:** `src/Quintessentia/Models/ProcessingStatus.cs`, `src/Quintessentia/Controllers/AudioController.cs`
 
 **Problem:** Using strings for stage names like `"downloading"`, `"transcribing"`, `"error"`.
@@ -210,7 +185,7 @@ Stage = "transcribing"
 
 ---
 
-### 10. Missing XML Documentation on Public APIs
+### 9. Missing XML Documentation on Public APIs
 **Location:** Throughout `Services/Contracts/` interfaces
 
 **Problem:** Most interface methods lack XML documentation except `IAudioService.cs`.
@@ -226,7 +201,7 @@ Stage = "transcribing"
 
 ---
 
-### 11. Inconsistent Error Response Formats
+### 10. Inconsistent Error Response Formats
 **Location:** `src/Quintessentia/Controllers/AudioController.cs`
 
 **Problem:** Mix of `BadRequest()`, `View("Error", ...)`, `NotFound()` for similar error conditions.
@@ -249,7 +224,7 @@ return View("Error", new ErrorViewModel { Message = "..." });
 
 ---
 
-### 12. Missing Dependency Injection for JsonSerializerOptions
+### 11. Missing Dependency Injection for JsonSerializerOptions
 **Locations:** 
 - `src/Quintessentia/Services/LocalFileMetadataService.cs`
 - `src/Quintessentia/Services/AzureBlobMetadataService.cs`
@@ -267,7 +242,7 @@ return View("Error", new ErrorViewModel { Message = "..." });
 
 ---
 
-### 13. Tight Coupling to File System in Services
+### 12. Tight Coupling to File System in Services
 **Location:** `src/Quintessentia/Services/AudioService.cs`, `ProcessingProgressService.cs`
 
 **Problem:** Direct `File.Exists()` and `Path.Combine()` calls in services.
@@ -287,7 +262,7 @@ if (System.IO.File.Exists(summaryTextPath))
 
 ---
 
-### 14. Potential Resource Leaks in Streams
+### 13. Potential Resource Leaks in Streams
 **Location:** `src/Quintessentia/Services/EpisodeQueryService.cs` (lines 119-124, 147-151)
 
 **Problem:** MemoryStream created and returned without clear ownership for disposal.
@@ -314,7 +289,7 @@ return stream;
 | Severity | Count | Key Issues |
 |----------|-------|------------|
 | 🔴 Critical | 1 | Hardcoded secrets |
-| 🟠 High | 2 | Generic exception handling, god controller |
+| 🟠 High | 1 | God controller |
 | 🟡 Medium | 4 | HttpContext coupling, input validation, async patterns, timeouts |
 | 🟢 Low | 7 | Documentation, enums, error formats, DI patterns |
 
@@ -323,5 +298,5 @@ return stream;
 ## Recommended Priority
 
 1. **Immediate:** Rotate compromised credentials and move secrets to secure storage
-2. **Medium Priority:** Add input validation, configure timeouts
+2. **Medium Priority:** Add input validation, configure timeouts, split god controller
 3. **Ongoing:** Address code smells during regular development

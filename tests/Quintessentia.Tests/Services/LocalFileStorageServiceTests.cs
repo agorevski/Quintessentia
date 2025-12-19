@@ -325,5 +325,47 @@ namespace Quintessentia.Tests.Services
             var content = await File.ReadAllTextAsync(filePath);
             content.Should().Be("test", "entire stream content should be written");
         }
+
+        #region Specific Exception Type Tests
+
+        [Fact]
+        public async Task DownloadToStreamAsync_ThrowsIOException_ForFileNotFound()
+        {
+            // Arrange
+            var containerName = "missing";
+            var blobName = "notfound.txt";
+            using var targetStream = new MemoryStream();
+
+            // Act & Assert - FileNotFoundException is a subclass of IOException
+            await Assert.ThrowsAsync<FileNotFoundException>(() => 
+                _service.DownloadToStreamAsync(containerName, blobName, targetStream));
+        }
+
+        [Fact]
+        public async Task GetBlobSizeAsync_ThrowsIOException_ForFileNotFound()
+        {
+            // Arrange
+            var containerName = "size";
+            var blobName = "notfound.txt";
+
+            // Act & Assert - FileNotFoundException is a subclass of IOException
+            await Assert.ThrowsAsync<FileNotFoundException>(() => 
+                _service.GetBlobSizeAsync(containerName, blobName));
+        }
+
+        [Fact]
+        public async Task DownloadToFileAsync_ThrowsIOException_ForFileNotFound()
+        {
+            // Arrange
+            var containerName = "missing";
+            var blobName = "notfound.txt";
+            var targetPath = Path.Combine(_testBasePath, "target.txt");
+
+            // Act & Assert - FileNotFoundException is a subclass of IOException
+            await Assert.ThrowsAsync<FileNotFoundException>(() => 
+                _service.DownloadToFileAsync(containerName, blobName, targetPath));
+        }
+
+        #endregion
     }
 }

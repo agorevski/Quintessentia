@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Quintessentia.Services.Contracts;
@@ -55,9 +56,9 @@ namespace Quintessentia.Services
                         _containerClients[containerName] = containerClient;
                         _logger.LogInformation("Initialized blob container: {ContainerName}", containerName);
                     }
-                    catch (Exception ex)
+                    catch (RequestFailedException ex)
                     {
-                        _logger.LogError(ex, "Error initializing container: {ContainerName}", containerName);
+                        _logger.LogError(ex, "Azure storage error initializing container: {ContainerName}", containerName);
                         throw;
                     }
                 }
@@ -98,9 +99,9 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Uploaded blob: {ContainerName}/{BlobName}", containerName, blobName);
                 return blobClient.Uri.ToString();
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error uploading blob: {ContainerName}/{BlobName}", containerName, blobName);
+                _logger.LogError(ex, "Azure storage error uploading blob: {ContainerName}/{BlobName}", containerName, blobName);
                 throw;
             }
         }
@@ -112,9 +113,15 @@ namespace Quintessentia.Services
                 using var fileStream = File.OpenRead(localPath);
                 return await UploadStreamAsync(containerName, blobName, fileStream, cancellationToken);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error uploading file to blob: {LocalPath} -> {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "IO error reading file to upload: {LocalPath} -> {ContainerName}/{BlobName}", 
+                    localPath, containerName, blobName);
+                throw;
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogError(ex, "Azure storage error uploading file: {LocalPath} -> {ContainerName}/{BlobName}", 
                     localPath, containerName, blobName);
                 throw;
             }
@@ -132,9 +139,9 @@ namespace Quintessentia.Services
 
                 _logger.LogInformation("Downloaded blob to stream: {ContainerName}/{BlobName}", containerName, blobName);
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error downloading blob to stream: {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "Azure storage error downloading blob to stream: {ContainerName}/{BlobName}", 
                     containerName, blobName);
                 throw;
             }
@@ -159,9 +166,15 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Downloaded blob to file: {ContainerName}/{BlobName} -> {LocalPath}", 
                     containerName, blobName, localPath);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error downloading blob to file: {ContainerName}/{BlobName} -> {LocalPath}", 
+                _logger.LogError(ex, "IO error downloading blob to file: {ContainerName}/{BlobName} -> {LocalPath}", 
+                    containerName, blobName, localPath);
+                throw;
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogError(ex, "Azure storage error downloading blob to file: {ContainerName}/{BlobName} -> {LocalPath}", 
                     containerName, blobName, localPath);
                 throw;
             }
@@ -177,9 +190,9 @@ namespace Quintessentia.Services
                 var response = await blobClient.ExistsAsync(cancellationToken);
                 return response.Value;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error checking blob existence: {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "Azure storage error checking blob existence: {ContainerName}/{BlobName}", 
                     containerName, blobName);
                 return false;
             }
@@ -196,9 +209,9 @@ namespace Quintessentia.Services
 
                 _logger.LogInformation("Deleted blob: {ContainerName}/{BlobName}", containerName, blobName);
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error deleting blob: {ContainerName}/{BlobName}", containerName, blobName);
+                _logger.LogError(ex, "Azure storage error deleting blob: {ContainerName}/{BlobName}", containerName, blobName);
                 throw;
             }
         }
@@ -213,9 +226,9 @@ namespace Quintessentia.Services
                 var properties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
                 return properties.Value.ContentLength;
             }
-            catch (Exception ex)
+            catch (RequestFailedException ex)
             {
-                _logger.LogError(ex, "Error getting blob size: {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "Azure storage error getting blob size: {ContainerName}/{BlobName}", 
                     containerName, blobName);
                 throw;
             }

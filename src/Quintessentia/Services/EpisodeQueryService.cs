@@ -71,7 +71,11 @@ namespace Quintessentia.Services
                         summaryWordCount = summaryMetadata.SummaryWordCount;
                         transcriptWordCount = summaryMetadata.TranscriptWordCount;
                     }
-                    catch (Exception ex)
+                    catch (IOException ex)
+                    {
+                        _logger.LogWarning(ex, "IO error loading summary text for episode: {CacheKey}", cacheKey);
+                    }
+                    catch (InvalidOperationException ex)
                     {
                         _logger.LogWarning(ex, "Could not load summary text for episode: {CacheKey}", cacheKey);
                     }

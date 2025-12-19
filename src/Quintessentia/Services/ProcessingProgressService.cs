@@ -185,9 +185,45 @@ namespace Quintessentia.Services
                 });
                 throw;
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "Error in processing pipeline");
+                _logger.LogError(ex, "Invalid argument in processing pipeline");
+                await onProgress(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    IsError = true,
+                    ErrorMessage = ex.Message
+                });
+                throw;
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Invalid operation in processing pipeline");
+                await onProgress(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    IsError = true,
+                    ErrorMessage = ex.Message
+                });
+                throw;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error in processing pipeline");
+                await onProgress(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    IsError = true,
+                    ErrorMessage = ex.Message
+                });
+                throw;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error in processing pipeline");
                 await onProgress(new ProcessingStatus
                 {
                     Stage = "error",

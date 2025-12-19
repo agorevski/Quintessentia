@@ -1,27 +1,26 @@
 ================================================================================
 Class Coverage Report: LocalFileStorageService/<UploadStreamAsync>d__6
 ================================================================================
-Generated: 2025-12-19 11:03:59
+Generated: 2025-12-19 11:21:34
 Full Name: Quintessentia.Services.LocalFileStorageService/<UploadStreamAsync>d__6
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       77.8% (14/18 lines)
+Line Coverage:       63.6% (14/22 lines)
 Branch Coverage:     75% (3/4 branches)
 Method Coverage:     100% (1/1 methods)
 Fully Covered:       0% (0/1 methods)
 
 STATUS
---------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 6.4% improvement
 
 PARTIALLY COVERED METHODS (1)
---------------------------------------------------------------------------------  • MoveNext: 78% (14/18 lines)
+--------------------------------------------------------------------------------  • MoveNext: 64% (14/22 lines)
 
 RECOMMENDATIONS
---------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+--------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.
 Improve coverage of 1 partially covered method(s).
-Branch coverage is lower than line coverage - add tests for conditional logic.
 
 For detailed line-by-line coverage, see: Quintessentia_LocalFileStorageService/<UploadStreamAsync>d__6.html
 

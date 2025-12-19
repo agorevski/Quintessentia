@@ -1,22 +1,22 @@
 ================================================================================
 Class Coverage Report: LocalFileMetadataService/<SaveEpisodeMetadataAsync>d__10
 ================================================================================
-Generated: 2025-12-19 11:03:59
+Generated: 2025-12-19 11:21:34
 Full Name: Quintessentia.Services.LocalFileMetadataService/<SaveEpisodeMetadataAsync>d__10
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       66.7% (8/12 lines)
+Line Coverage:       50% (8/16 lines)
 Branch Coverage:     100% (0/0 branches)
 Method Coverage:     100% (1/1 methods)
 Fully Covered:       0% (0/1 methods)
 
 STATUS
---------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 3.3% improvement
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 20% improvement
 
 PARTIALLY COVERED METHODS (1)
---------------------------------------------------------------------------------  • MoveNext: 67% (8/12 lines)
+--------------------------------------------------------------------------------  • MoveNext: 50% (8/16 lines)
 
 RECOMMENDATIONS
 --------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.

@@ -172,7 +172,7 @@ namespace Quintessentia.Tests.Services
             _metadataServiceMock.Setup(m => m.GetSummaryMetadataAsync(cacheKey, It.IsAny<CancellationToken>())).ReturnsAsync(summaryMetadata);
 
             _storageServiceMock.Setup(s => s.DownloadToStreamAsync("transcripts", $"{cacheKey}_summary.txt", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Download failed"));
+                .ThrowsAsync(new IOException("Download failed"));
 
             // Act
             var result = await _service.GetResultAsync(episodeId);

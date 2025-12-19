@@ -1,14 +1,14 @@
 ================================================================================
 Class Coverage Report: AudioService/<ProcessAndSummarizeEpisodeAsync>d__15
 ================================================================================
-Generated: 2025-12-19 11:03:59
+Generated: 2025-12-19 11:21:34
 Full Name: Quintessentia.Services.AudioService/<ProcessAndSummarizeEpisodeAsync>d__15
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       98.6% (136/138 lines)
-Branch Coverage:     85% (17/20 branches)
+Line Coverage:       75% (123/164 lines)
+Branch Coverage:     66.7% (16/24 branches)
 Method Coverage:     100% (1/1 methods)
 Fully Covered:       0% (0/1 methods)
 
@@ -16,10 +16,10 @@ STATUS
 --------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
 
 PARTIALLY COVERED METHODS (1)
---------------------------------------------------------------------------------  • MoveNext: 99% (136/138 lines)
+--------------------------------------------------------------------------------  • MoveNext: 75% (123/164 lines)
 
 RECOMMENDATIONS
---------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
 Improve coverage of 1 partially covered method(s).
 Branch coverage is lower than line coverage - add tests for conditional logic.
 

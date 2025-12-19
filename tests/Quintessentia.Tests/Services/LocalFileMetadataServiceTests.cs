@@ -412,5 +412,33 @@ namespace Quintessentia.Tests.Services
             var result = await _service.GetEpisodeMetadataAsync("test-key", cts.Token);
             result.Should().NotBeNull();
         }
+
+        #region Specific Exception Type Tests
+
+        [Fact]
+        public async Task GetEpisodeMetadataAsync_WithCorruptedJson_ThrowsJsonException()
+        {
+            // Arrange
+            var cacheKey = "corrupted-json-key";
+            var filePath = Path.Combine(_testBasePath, "metadata", "episodes", $"{cacheKey}.json");
+            await File.WriteAllTextAsync(filePath, "{ invalid json content {{{}}}");
+
+            // Act & Assert
+            await Assert.ThrowsAsync<System.Text.Json.JsonException>(() => _service.GetEpisodeMetadataAsync(cacheKey));
+        }
+
+        [Fact]
+        public async Task GetSummaryMetadataAsync_WithCorruptedJson_ThrowsJsonException()
+        {
+            // Arrange
+            var cacheKey = "corrupted-summary-key";
+            var filePath = Path.Combine(_testBasePath, "metadata", "summaries", $"{cacheKey}.json");
+            await File.WriteAllTextAsync(filePath, "not valid json at all");
+
+            // Act & Assert
+            await Assert.ThrowsAsync<System.Text.Json.JsonException>(() => _service.GetSummaryMetadataAsync(cacheKey));
+        }
+
+        #endregion
     }
 }

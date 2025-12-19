@@ -116,9 +116,33 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Successfully downloaded and cached episode: {CacheKey}", cacheKey);
                 return tempPath;
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "Error downloading episode from URL");
+                _logger.LogError(ex, "HTTP error downloading episode from URL");
+
+                // Clean up temp file on error
+                if (File.Exists(tempPath))
+                {
+                    try { File.Delete(tempPath); } catch { }
+                }
+
+                throw;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error downloading episode from URL");
+
+                // Clean up temp file on error
+                if (File.Exists(tempPath))
+                {
+                    try { File.Delete(tempPath); } catch { }
+                }
+
+                throw;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Download operation was cancelled or timed out");
 
                 // Clean up temp file on error
                 if (File.Exists(tempPath))
@@ -155,9 +179,31 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Successfully downloaded {Bytes} bytes to {FilePath}",
                     new FileInfo(filePath).Length, filePath);
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "Error downloading MP3 file from URL: {Url}", url);
+                _logger.LogError(ex, "HTTP error downloading MP3 file from URL: {Url}", url);
+
+                // Clean up partial download if it exists
+                if (File.Exists(filePath))
+                {
+                    try { File.Delete(filePath); } catch { }
+                }
+                throw;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error downloading MP3 file from URL: {Url}", url);
+
+                // Clean up partial download if it exists
+                if (File.Exists(filePath))
+                {
+                    try { File.Delete(filePath); } catch { }
+                }
+                throw;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Download operation was cancelled or timed out for URL: {Url}", url);
 
                 // Clean up partial download if it exists
                 if (File.Exists(filePath))
@@ -341,9 +387,41 @@ namespace Quintessentia.Services
 
                 return tempSummaryAudioPath;
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "Error in AI processing pipeline for episode: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "HTTP error in AI processing pipeline for episode: {CacheKey}", cacheKey);
+
+                progressCallback?.Invoke(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    Progress = ProcessingProgress.Error,
+                    IsError = true,
+                    ErrorMessage = ex.Message,
+                    EpisodeId = cacheKey
+                });
+
+                throw;
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error in AI processing pipeline for episode: {CacheKey}", cacheKey);
+
+                progressCallback?.Invoke(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    Progress = ProcessingProgress.Error,
+                    IsError = true,
+                    ErrorMessage = ex.Message,
+                    EpisodeId = cacheKey
+                });
+
+                throw;
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Invalid operation in AI processing pipeline for episode: {CacheKey}", cacheKey);
 
                 progressCallback?.Invoke(new ProcessingStatus
                 {

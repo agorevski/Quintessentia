@@ -74,9 +74,14 @@ namespace Quintessentia.Services
                 // Return file:// URI for local files
                 return new Uri(Path.GetFullPath(filePath)).AbsoluteUri;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error uploading file: {ContainerName}/{BlobName}", containerName, blobName);
+                _logger.LogError(ex, "IO error uploading file: {ContainerName}/{BlobName}", containerName, blobName);
+                throw;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied uploading file: {ContainerName}/{BlobName}", containerName, blobName);
                 throw;
             }
         }
@@ -88,9 +93,15 @@ namespace Quintessentia.Services
                 using var fileStream = File.OpenRead(localPath);
                 return await UploadStreamAsync(containerName, blobName, fileStream, cancellationToken);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error uploading file: {LocalPath} -> {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "IO error uploading file: {LocalPath} -> {ContainerName}/{BlobName}", 
+                    localPath, containerName, blobName);
+                throw;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied uploading file: {LocalPath} -> {ContainerName}/{BlobName}", 
                     localPath, containerName, blobName);
                 throw;
             }
@@ -113,9 +124,9 @@ namespace Quintessentia.Services
 
                 _logger.LogInformation("Downloaded file to stream: {ContainerName}/{BlobName}", containerName, blobName);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error downloading file to stream: {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "IO error downloading file to stream: {ContainerName}/{BlobName}", 
                     containerName, blobName);
                 throw;
             }
@@ -147,9 +158,15 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Downloaded file: {ContainerName}/{BlobName} -> {LocalPath}", 
                     containerName, blobName, localPath);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error downloading file: {ContainerName}/{BlobName} -> {LocalPath}", 
+                _logger.LogError(ex, "IO error downloading file: {ContainerName}/{BlobName} -> {LocalPath}", 
+                    containerName, blobName, localPath);
+                throw;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied downloading file: {ContainerName}/{BlobName} -> {LocalPath}", 
                     containerName, blobName, localPath);
                 throw;
             }
@@ -162,9 +179,9 @@ namespace Quintessentia.Services
                 var filePath = GetFilePath(containerName, blobName);
                 return Task.FromResult(File.Exists(filePath));
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error checking file existence: {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "IO error checking file existence: {ContainerName}/{BlobName}", 
                     containerName, blobName);
                 return Task.FromResult(false);
             }
@@ -182,9 +199,14 @@ namespace Quintessentia.Services
                     _logger.LogInformation("Deleted file: {ContainerName}/{BlobName}", containerName, blobName);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error deleting file: {ContainerName}/{BlobName}", containerName, blobName);
+                _logger.LogError(ex, "IO error deleting file: {ContainerName}/{BlobName}", containerName, blobName);
+                throw;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied deleting file: {ContainerName}/{BlobName}", containerName, blobName);
                 throw;
             }
             
@@ -205,9 +227,9 @@ namespace Quintessentia.Services
                 var fileInfo = new FileInfo(filePath);
                 return Task.FromResult(fileInfo.Length);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error getting file size: {ContainerName}/{BlobName}", 
+                _logger.LogError(ex, "IO error getting file size: {ContainerName}/{BlobName}", 
                     containerName, blobName);
                 throw;
             }

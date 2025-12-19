@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: MockAzureOpenAIService/<TranscribeAudioAsync>d__3
 ================================================================================
-Generated: 2025-12-19 11:03:59
+Generated: 2025-12-19 11:21:34
 Full Name: Quintessentia.Services.MockAzureOpenAIService/<TranscribeAudioAsync>d__3
 Namespace: Quintessentia.Services
 

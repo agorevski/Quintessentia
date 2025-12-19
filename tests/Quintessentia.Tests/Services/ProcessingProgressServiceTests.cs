@@ -225,7 +225,7 @@ namespace Quintessentia.Tests.Services
             _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(audioUrl)).Returns(cacheKey);
             _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(cacheKey, It.IsAny<CancellationToken>())).ReturnsAsync(false);
             _audioServiceMock.Setup(a => a.IsSummaryCachedAsync(cacheKey, It.IsAny<CancellationToken>())).ReturnsAsync(false);
-            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(audioUrl, It.IsAny<CancellationToken>())).ThrowsAsync(new Exception("Download failed"));
+            _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(audioUrl, It.IsAny<CancellationToken>())).ThrowsAsync(new HttpRequestException("Download failed"));
 
             Task OnProgress(ProcessingStatus status)
             {
@@ -235,7 +235,7 @@ namespace Quintessentia.Tests.Services
             }
 
             // Act & Assert
-            await Assert.ThrowsAsync<Exception>(() =>
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
                 _service.ProcessWithProgressAsync(audioUrl, null, OnProgress));
 
             errorStatus.Should().NotBeNull();

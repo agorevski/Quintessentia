@@ -382,7 +382,7 @@ namespace Quintessentia.Tests.Controllers
             var testUrl = "https://example.com/error.mp3";
             _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
             _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Unexpected error"));
+                .ThrowsAsync(new HttpRequestException("Unexpected error"));
 
             // Act
             var result = await _controller.Process(testUrl, CancellationToken.None);
@@ -398,7 +398,7 @@ namespace Quintessentia.Tests.Controllers
             // Arrange
             var testUrl = "https://example.com/error.mp3";
             _audioServiceMock.Setup(a => a.GetOrDownloadEpisodeAsync(testUrl, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Processing failed"));
+                .ThrowsAsync(new HttpRequestException("Processing failed"));
 
             // Act
             var result = await _controller.ProcessAndSummarize(testUrl);
@@ -407,7 +407,7 @@ namespace Quintessentia.Tests.Controllers
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             viewResult.ViewName.Should().Be("Error");
             var model = viewResult.Model.Should().BeOfType<ErrorViewModel>().Subject;
-            model.Message.Should().Contain("error occurred");
+            model.Message.Should().Contain("Failed to download");
         }
         #endregion
 
@@ -582,7 +582,7 @@ namespace Quintessentia.Tests.Controllers
             _controller.ControllerContext.HttpContext = httpContext;
 
             _audioServiceMock.Setup(a => a.IsEpisodeCachedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Test exception"));
+                .ThrowsAsync(new InvalidOperationException("Test exception"));
 
             // Act
             await _controller.ProcessAndSummarizeStream(testUrl);

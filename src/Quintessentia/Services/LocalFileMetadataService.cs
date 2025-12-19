@@ -73,9 +73,14 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Retrieved episode metadata: {CacheKey}", cacheKey);
                 return episode;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error retrieving episode metadata: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error retrieving episode metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error for episode metadata: {CacheKey}", cacheKey);
                 throw;
             }
         }
@@ -91,9 +96,14 @@ namespace Quintessentia.Services
                 
                 _logger.LogInformation("Saved episode metadata: {CacheKey}", episode.CacheKey);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error saving episode metadata: {CacheKey}", episode.CacheKey);
+                _logger.LogError(ex, "IO error saving episode metadata: {CacheKey}", episode.CacheKey);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON serialization error for episode metadata: {CacheKey}", episode.CacheKey);
                 throw;
             }
         }
@@ -108,9 +118,9 @@ namespace Quintessentia.Services
                 _logger.LogDebug("Episode metadata exists check: {CacheKey} = {Exists}", cacheKey, exists);
                 return Task.FromResult(exists);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error checking episode metadata existence: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error checking episode metadata existence: {CacheKey}", cacheKey);
                 return Task.FromResult(false);
             }
         }
@@ -133,9 +143,14 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Retrieved summary metadata: {CacheKey}", cacheKey);
                 return summary;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error retrieving summary metadata: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error retrieving summary metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error for summary metadata: {CacheKey}", cacheKey);
                 throw;
             }
         }
@@ -151,9 +166,14 @@ namespace Quintessentia.Services
                 
                 _logger.LogInformation("Saved summary metadata: {CacheKey}", cacheKey);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error saving summary metadata: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error saving summary metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON serialization error for summary metadata: {CacheKey}", cacheKey);
                 throw;
             }
         }
@@ -168,9 +188,9 @@ namespace Quintessentia.Services
                 _logger.LogDebug("Summary metadata exists check: {CacheKey} = {Exists}", cacheKey, exists);
                 return Task.FromResult(exists);
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error checking summary metadata existence: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error checking summary metadata existence: {CacheKey}", cacheKey);
                 return Task.FromResult(false);
             }
         }
@@ -191,9 +211,14 @@ namespace Quintessentia.Services
                     _logger.LogDebug("Episode metadata not found for deletion: {CacheKey}", cacheKey);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error deleting episode metadata: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error deleting episode metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied deleting episode metadata: {CacheKey}", cacheKey);
                 throw;
             }
             
@@ -216,9 +241,14 @@ namespace Quintessentia.Services
                     _logger.LogDebug("Summary metadata not found for deletion: {CacheKey}", cacheKey);
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error deleting summary metadata: {CacheKey}", cacheKey);
+                _logger.LogError(ex, "IO error deleting summary metadata: {CacheKey}", cacheKey);
+                throw;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied deleting summary metadata: {CacheKey}", cacheKey);
                 throw;
             }
             

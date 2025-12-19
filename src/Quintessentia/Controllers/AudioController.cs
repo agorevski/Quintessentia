@@ -79,9 +79,14 @@ namespace Quintessentia.Controllers
                 _logger.LogError(ex, "HTTP error downloading audio from URL: {Url}", audioUrl);
                 return View("Error", new ErrorViewModel { Message = "Failed to download the audio. Please check the URL and try again." });
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error processing audio URL: {Url}", audioUrl);
+                _logger.LogError(ex, "IO error processing audio URL: {Url}", audioUrl);
+                return View("Error", new ErrorViewModel { Message = "An error occurred while processing your request." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Invalid operation error processing audio URL: {Url}", audioUrl);
                 return View("Error", new ErrorViewModel { Message = "An error occurred while processing your request." });
             }
         }
@@ -98,9 +103,9 @@ namespace Quintessentia.Controllers
             {
                 return NotFound("Episode not found.");
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error downloading episode: {EpisodeId}", episodeId);
+                _logger.LogError(ex, "IO error downloading episode: {EpisodeId}", episodeId);
                 return NotFound("Episode not found.");
             }
         }
@@ -228,9 +233,14 @@ namespace Quintessentia.Controllers
                 _logger.LogError(ex, "HTTP error downloading audio from URL: {Url}", audioUrl);
                 return View("Error", new ErrorViewModel { Message = "Failed to download the audio. Please check the URL and try again." });
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error processing audio URL: {Url}", audioUrl);
+                _logger.LogError(ex, "IO error processing audio URL: {Url}", audioUrl);
+                return View("Error", new ErrorViewModel { Message = $"An error occurred while processing your request: {ex.Message}" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Invalid operation error processing audio URL: {Url}", audioUrl);
                 return View("Error", new ErrorViewModel { Message = $"An error occurred while processing your request: {ex.Message}" });
             }
         }
@@ -247,9 +257,14 @@ namespace Quintessentia.Controllers
             {
                 return NotFound("Episode not found.");
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error loading result for episode: {EpisodeId}", episodeId);
+                _logger.LogError(ex, "IO error loading result for episode: {EpisodeId}", episodeId);
+                return View("Error", new ErrorViewModel { Message = "An error occurred while loading the result." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Invalid operation error loading result for episode: {EpisodeId}", episodeId);
                 return View("Error", new ErrorViewModel { Message = "An error occurred while loading the result." });
             }
         }
@@ -266,9 +281,9 @@ namespace Quintessentia.Controllers
             {
                 return NotFound("Summary not found.");
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error downloading summary: {EpisodeId}", episodeId);
+                _logger.LogError(ex, "IO error downloading summary: {EpisodeId}", episodeId);
                 return NotFound("Summary not found.");
             }
         }
@@ -453,9 +468,31 @@ namespace Quintessentia.Controllers
                     ErrorMessage = "Processing was cancelled"
                 });
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Error in streaming processing pipeline");
+                _logger.LogError(ex, "IO error in streaming processing pipeline");
+                await SendStatusUpdate(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    IsError = true,
+                    ErrorMessage = ex.Message
+                });
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error in streaming processing pipeline");
+                await SendStatusUpdate(new ProcessingStatus
+                {
+                    Stage = "error",
+                    Message = "Processing failed",
+                    IsError = true,
+                    ErrorMessage = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "Invalid operation error in streaming processing pipeline");
                 await SendStatusUpdate(new ProcessingStatus
                 {
                     Stage = "error",
