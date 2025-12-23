@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: AzureOpenAIService/<>c__DisplayClass16_2/<<TranscribeAudioInChunksAsync>b__0>d
 ================================================================================
-Generated: 2025-12-19 11:21:34
+Generated: 2025-12-23 14:18:48
 Full Name: Quintessentia.Services.AzureOpenAIService/<>c__DisplayClass16_2/<<TranscribeAudioInChunksAsync>b__0>d
 Namespace: Quintessentia.Services
 

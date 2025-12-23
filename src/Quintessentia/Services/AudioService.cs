@@ -4,6 +4,9 @@ using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
 {
+    /// <summary>
+    /// Service for downloading, caching, and processing audio files.
+    /// </summary>
     public class AudioService : IAudioService
     {
         private readonly ILogger<AudioService> _logger;
@@ -14,6 +17,11 @@ namespace Quintessentia.Services
         private readonly IStorageConfiguration _storageConfiguration;
         private readonly ICacheKeyService _cacheKeyService;
         private readonly string _tempDirectory;
+
+        /// <summary>
+        /// Default timeout for HTTP requests in seconds.
+        /// </summary>
+        private const int DefaultRequestTimeoutSeconds = 300; // 5 minutes for large audio files
 
         public AudioService(
             ILogger<AudioService> logger,
@@ -26,6 +34,7 @@ namespace Quintessentia.Services
         {
             _logger = logger;
             _httpClient = httpClientFactory.CreateClient();
+            _httpClient.Timeout = TimeSpan.FromSeconds(DefaultRequestTimeoutSeconds);
             _azureOpenAIService = azureOpenAIService;
             _storageService = storageService;
             _metadataService = metadataService;
@@ -119,37 +128,19 @@ namespace Quintessentia.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error downloading episode from URL");
-
-                // Clean up temp file on error
-                if (File.Exists(tempPath))
-                {
-                    try { File.Delete(tempPath); } catch { }
-                }
-
+                CleanupFile(tempPath);
                 throw;
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error downloading episode from URL");
-
-                // Clean up temp file on error
-                if (File.Exists(tempPath))
-                {
-                    try { File.Delete(tempPath); } catch { }
-                }
-
+                CleanupFile(tempPath);
                 throw;
             }
             catch (TaskCanceledException ex)
             {
                 _logger.LogError(ex, "Download operation was cancelled or timed out");
-
-                // Clean up temp file on error
-                if (File.Exists(tempPath))
-                {
-                    try { File.Delete(tempPath); } catch { }
-                }
-
+                CleanupFile(tempPath);
                 throw;
             }
         }
@@ -160,21 +151,25 @@ namespace Quintessentia.Services
             {
                 _logger.LogInformation("Downloading MP3 from URL: {Url}", url);
 
+                // Create a linked cancellation token with per-request timeout
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(DefaultRequestTimeoutSeconds));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
                 // Download the file with streaming to handle large files efficiently
-                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
                 response.EnsureSuccessStatusCode();
 
                 // Verify content type is audio
                 var contentType = response.Content.Headers.ContentType?.MediaType;
-                if (contentType != null && !contentType.StartsWith("audio/"))
+                if (contentType is not null && !contentType.StartsWith("audio/"))
                 {
                     _logger.LogWarning("Content type is {ContentType}, expected audio/*", contentType);
                 }
 
                 // Stream the content to file
-                using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
-                await contentStream.CopyToAsync(fileStream, cancellationToken);
+                await using var contentStream = await response.Content.ReadAsStreamAsync(linkedCts.Token);
+                await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                await contentStream.CopyToAsync(fileStream, linkedCts.Token);
 
                 _logger.LogInformation("Successfully downloaded {Bytes} bytes to {FilePath}",
                     new FileInfo(filePath).Length, filePath);
@@ -184,10 +179,7 @@ namespace Quintessentia.Services
                 _logger.LogError(ex, "HTTP error downloading MP3 file from URL: {Url}", url);
 
                 // Clean up partial download if it exists
-                if (File.Exists(filePath))
-                {
-                    try { File.Delete(filePath); } catch { }
-                }
+                CleanupFile(filePath);
                 throw;
             }
             catch (IOException ex)
@@ -195,10 +187,7 @@ namespace Quintessentia.Services
                 _logger.LogError(ex, "IO error downloading MP3 file from URL: {Url}", url);
 
                 // Clean up partial download if it exists
-                if (File.Exists(filePath))
-                {
-                    try { File.Delete(filePath); } catch { }
-                }
+                CleanupFile(filePath);
                 throw;
             }
             catch (TaskCanceledException ex)
@@ -206,14 +195,12 @@ namespace Quintessentia.Services
                 _logger.LogError(ex, "Download operation was cancelled or timed out for URL: {Url}", url);
 
                 // Clean up partial download if it exists
-                if (File.Exists(filePath))
-                {
-                    try { File.Delete(filePath); } catch { }
-                }
+                CleanupFile(filePath);
                 throw;
             }
         }
 
+        /// <inheritdoc/>
         public async Task<string> ProcessAndSummarizeEpisodeAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             return await ProcessAndSummarizeEpisodeAsync(episodeId, null, cancellationToken);
@@ -245,7 +232,7 @@ namespace Quintessentia.Services
 
                     progressCallback?.Invoke(new ProcessingStatus
                     {
-                        Stage = "complete",
+                        StageEnum = ProcessingStage.Complete,
                         Message = "Summary retrieved from cache",
                         Progress = ProcessingProgress.Complete,
                         IsComplete = true,
@@ -270,7 +257,7 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Step 1/3: Transcribing audio to text...");
                 progressCallback?.Invoke(new ProcessingStatus
                 {
-                    Stage = "transcribing",
+                    StageEnum = ProcessingStage.Transcribing,
                     Message = "Transcribing audio to text using Azure Whisper...",
                     Progress = ProcessingProgress.Transcribing,
                     EpisodeId = cacheKey
@@ -291,7 +278,7 @@ namespace Quintessentia.Services
                 var transcriptWordCount = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 progressCallback?.Invoke(new ProcessingStatus
                 {
-                    Stage = "transcribed",
+                    StageEnum = ProcessingStage.Transcribed,
                     Message = $"Transcription complete ({transcriptWordCount:N0} words)",
                     Progress = ProcessingProgress.Transcribed,
                     EpisodeId = cacheKey,
@@ -302,7 +289,7 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Step 2/3: Summarizing transcript with GPT...");
                 progressCallback?.Invoke(new ProcessingStatus
                 {
-                    Stage = "summarizing",
+                    StageEnum = ProcessingStage.Summarizing,
                     Message = "Summarizing transcript with GPT-5...",
                     Progress = ProcessingProgress.Summarizing,
                     EpisodeId = cacheKey,
@@ -323,7 +310,7 @@ namespace Quintessentia.Services
                 var summaryWordCount = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                 progressCallback?.Invoke(new ProcessingStatus
                 {
-                    Stage = "summarized",
+                    StageEnum = ProcessingStage.Summarized,
                     Message = $"Summary complete ({summaryWordCount:N0} words)",
                     Progress = ProcessingProgress.Summarized,
                     EpisodeId = cacheKey,
@@ -336,7 +323,7 @@ namespace Quintessentia.Services
                 _logger.LogInformation("Step 3/3: Generating speech from summary...");
                 progressCallback?.Invoke(new ProcessingStatus
                 {
-                    Stage = "generating-speech",
+                    StageEnum = ProcessingStage.GeneratingSpeech,
                     Message = "Generating speech from summary using GPT-4o-mini-tts...",
                     Progress = ProcessingProgress.GeneratingSpeech,
                     EpisodeId = cacheKey,
@@ -374,7 +361,7 @@ namespace Quintessentia.Services
 
                 progressCallback?.Invoke(new ProcessingStatus
                 {
-                    Stage = "complete",
+                    StageEnum = ProcessingStage.Complete,
                     Message = "Processing complete!",
                     Progress = ProcessingProgress.Complete,
                     IsComplete = true,
@@ -390,59 +377,37 @@ namespace Quintessentia.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error in AI processing pipeline for episode: {CacheKey}", cacheKey);
-
-                progressCallback?.Invoke(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    Progress = ProcessingProgress.Error,
-                    IsError = true,
-                    ErrorMessage = ex.Message,
-                    EpisodeId = cacheKey
-                });
-
+                var errorStatus = ProcessingStatus.CreateError("Processing failed", ex.Message);
+                errorStatus.EpisodeId = cacheKey;
+                progressCallback?.Invoke(errorStatus);
                 throw;
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error in AI processing pipeline for episode: {CacheKey}", cacheKey);
-
-                progressCallback?.Invoke(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    Progress = ProcessingProgress.Error,
-                    IsError = true,
-                    ErrorMessage = ex.Message,
-                    EpisodeId = cacheKey
-                });
-
+                var errorStatus = ProcessingStatus.CreateError("Processing failed", ex.Message);
+                errorStatus.EpisodeId = cacheKey;
+                progressCallback?.Invoke(errorStatus);
                 throw;
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation in AI processing pipeline for episode: {CacheKey}", cacheKey);
-
-                progressCallback?.Invoke(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    Progress = ProcessingProgress.Error,
-                    IsError = true,
-                    ErrorMessage = ex.Message,
-                    EpisodeId = cacheKey
-                });
-
+                var errorStatus = ProcessingStatus.CreateError("Processing failed", ex.Message);
+                errorStatus.EpisodeId = cacheKey;
+                progressCallback?.Invoke(errorStatus);
                 throw;
             }
         }
 
+        /// <inheritdoc/>
         public string GetSummaryPath(string episodeId)
         {
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
             return GetTempFilePath(cacheKey, "_summary.mp3");
         }
 
+        /// <inheritdoc/>
         public async Task<bool> IsSummaryCachedAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
@@ -452,6 +417,17 @@ namespace Quintessentia.Services
         private string GetTempFilePath(string cacheKey, string suffix)
         {
             return Path.Combine(_tempDirectory, $"audio_{cacheKey}{suffix}");
+        }
+
+        /// <summary>
+        /// Safely cleans up a file if it exists.
+        /// </summary>
+        private static void CleanupFile(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                try { File.Delete(filePath); } catch { /* Ignore cleanup errors */ }
+            }
         }
     }
 }

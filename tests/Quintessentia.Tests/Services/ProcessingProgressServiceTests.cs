@@ -11,6 +11,7 @@ namespace Quintessentia.Tests.Services
     {
         private readonly Mock<IAudioService> _audioServiceMock;
         private readonly Mock<ICacheKeyService> _cacheKeyServiceMock;
+        private readonly Mock<IUrlValidator> _urlValidatorMock;
         private readonly Mock<ILogger<ProcessingProgressService>> _loggerMock;
         private readonly ProcessingProgressService _service;
 
@@ -18,15 +19,35 @@ namespace Quintessentia.Tests.Services
         {
             _audioServiceMock = new Mock<IAudioService>();
             _cacheKeyServiceMock = new Mock<ICacheKeyService>();
+            _urlValidatorMock = new Mock<IUrlValidator>();
             _loggerMock = new Mock<ILogger<ProcessingProgressService>>();
 
             _cacheKeyServiceMock
                 .Setup(c => c.GenerateFromUrl(It.IsAny<string>()))
                 .Returns<string>(url => $"cache-{url.GetHashCode()}");
 
+            // Setup URL validator
+            _urlValidatorMock.Setup(v => v.ValidateUrl(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+                .Returns((string url, out string? error) =>
+                {
+                    error = null;
+                    if (string.IsNullOrWhiteSpace(url))
+                    {
+                        error = "URL cannot be empty.";
+                        return false;
+                    }
+                    if (url.StartsWith("http://") || url.StartsWith("https://"))
+                    {
+                        return true;
+                    }
+                    error = "Invalid URL format.";
+                    return false;
+                });
+
             _service = new ProcessingProgressService(
                 _audioServiceMock.Object,
                 _cacheKeyServiceMock.Object,
+                _urlValidatorMock.Object,
                 _loggerMock.Object);
         }
 
@@ -50,7 +71,7 @@ namespace Quintessentia.Tests.Services
             exception.ParamName.Should().Be("audioUrl");
             errorStatus.Should().NotBeNull();
             errorStatus!.IsError.Should().BeTrue();
-            errorStatus.ErrorMessage.Should().Contain("MP3 URL is required");
+            errorStatus.ErrorMessage.Should().Contain("URL cannot be empty");
         }
 
         [Fact]

@@ -1,0 +1,29 @@
+================================================================================
+Class Coverage Report: ProcessingStageExtensions
+================================================================================
+Generated: 2025-12-23 14:18:48
+Full Name: Quintessentia.Models.ProcessingStageExtensions
+Namespace: Quintessentia.Models
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       73.3% (22/30 lines)
+Branch Coverage:     40.7% (22/54 branches)
+Method Coverage:     100% (2/2 methods)
+Fully Covered:       0% (0/2 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+PARTIALLY COVERED METHODS (2)
+--------------------------------------------------------------------------------  • ParseStage: 53% (8/15 lines)
+  • ToStageString: 93% (14/15 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+Improve coverage of 2 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_ProcessingStageExtensions.html
+
+================================================================================

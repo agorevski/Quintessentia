@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Quintessentia.Constants;
 using Quintessentia.Models;
+using Quintessentia.Services;
 using Quintessentia.Services.Contracts;
 using Quintessentia.Utilities;
 using System.Diagnostics;
@@ -15,6 +16,8 @@ namespace Quintessentia.Controllers
         private readonly IEpisodeQueryService _episodeQueryService;
         private readonly IProcessingProgressService _progressService;
         private readonly ICacheKeyService _cacheKeyService;
+        private readonly IUrlValidator _urlValidator;
+        private readonly JsonOptionsService _jsonOptions;
         private readonly ILogger<AudioController> _logger;
 
         public AudioController(
@@ -22,12 +25,16 @@ namespace Quintessentia.Controllers
             IEpisodeQueryService episodeQueryService,
             IProcessingProgressService progressService,
             ICacheKeyService cacheKeyService,
+            IUrlValidator urlValidator,
+            JsonOptionsService jsonOptions,
             ILogger<AudioController> logger)
         {
             _audioService = audioService;
             _episodeQueryService = episodeQueryService;
             _progressService = progressService;
             _cacheKeyService = cacheKeyService;
+            _urlValidator = urlValidator;
+            _jsonOptions = jsonOptions;
             _logger = logger;
         }
 
@@ -38,14 +45,13 @@ namespace Quintessentia.Controllers
             {
                 if (string.IsNullOrWhiteSpace(audioUrl))
                 {
-                    return BadRequest("MP3 URL is required.");
+                    return CreateErrorResult("MP3 URL is required.");
                 }
 
-                // Validate URL format
-                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) || 
-                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                // Validate URL format and security
+                if (!_urlValidator.ValidateUrl(audioUrl, out var errorMessage))
                 {
-                    return BadRequest("Invalid URL format. Please provide a valid HTTP or HTTPS URL.");
+                    return CreateErrorResult(errorMessage ?? "Invalid URL.");
                 }
 
                 // Generate cache key from URL
@@ -59,7 +65,7 @@ namespace Quintessentia.Controllers
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
-                    return BadRequest("Failed to download or retrieve episode.");
+                    return CreateErrorResult("Failed to download or retrieve episode.");
                 }
 
                 // Return success without exposing file path
@@ -77,17 +83,17 @@ namespace Quintessentia.Controllers
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error downloading audio from URL: {Url}", audioUrl);
-                return View("Error", new ErrorViewModel { Message = "Failed to download the audio. Please check the URL and try again." });
+                return CreateErrorResult("Failed to download the audio. Please check the URL and try again.");
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error processing audio URL: {Url}", audioUrl);
-                return View("Error", new ErrorViewModel { Message = "An error occurred while processing your request." });
+                return CreateErrorResult("An error occurred while processing your request.");
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation error processing audio URL: {Url}", audioUrl);
-                return View("Error", new ErrorViewModel { Message = "An error occurred while processing your request." });
+                return CreateErrorResult("An error occurred while processing your request.");
             }
         }
 
@@ -96,7 +102,7 @@ namespace Quintessentia.Controllers
         {
             try
             {
-                var stream = await _episodeQueryService.GetEpisodeStreamAsync(episodeId, cancellationToken);
+                using var stream = await _episodeQueryService.GetEpisodeStreamAsync(episodeId, cancellationToken);
                 return File(stream, "audio/mpeg", $"{episodeId}.mp3");
             }
             catch (FileNotFoundException)
@@ -128,7 +134,7 @@ namespace Quintessentia.Controllers
             {
                 if (string.IsNullOrWhiteSpace(audioUrl))
                 {
-                    return BadRequest("MP3 URL is required.");
+                    return CreateErrorResult("MP3 URL is required.");
                 }
 
                 // Create settings object if any overrides are provided
@@ -156,37 +162,32 @@ namespace Quintessentia.Controllers
                     _logger.LogInformation("Using custom Azure OpenAI settings for this request");
                 }
 
-                // Validate URL format
-                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) || 
-                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                // Validate URL format and security
+                if (!_urlValidator.ValidateUrl(audioUrl, out var errorMessage))
                 {
-                    return BadRequest("Invalid URL format. Please provide a valid HTTP or HTTPS URL.");
+                    return CreateErrorResult(errorMessage ?? "Invalid URL.");
                 }
 
                 // Generate cache key from URL
                 var cacheKey = _cacheKeyService.GenerateFromUrl(audioUrl);
+                var cancellationToken = HttpContext.RequestAborted;
 
                 // Check if already cached before attempting download
-                var wasCached = await _audioService.IsEpisodeCachedAsync(cacheKey, HttpContext.RequestAborted);
-                var summaryWasCached = await _audioService.IsSummaryCachedAsync(cacheKey, HttpContext.RequestAborted);
+                var wasCached = await _audioService.IsEpisodeCachedAsync(cacheKey, cancellationToken);
+                var summaryWasCached = await _audioService.IsSummaryCachedAsync(cacheKey, cancellationToken);
 
                 // Download or retrieve cached episode (pass the full URL as the "episodeId")
-                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl, HttpContext.RequestAborted);
+                var episodePath = await _audioService.GetOrDownloadEpisodeAsync(audioUrl, cancellationToken);
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
-                    return BadRequest("Failed to download or retrieve episode.");
-                }
-
-                // Store custom settings in HttpContext for services to access
-                if (customSettings != null)
-                {
-                    HttpContext.Items["AzureOpenAISettings"] = customSettings;
+                    return CreateErrorResult("Failed to download or retrieve episode.");
                 }
 
                 // Process through AI pipeline (transcription, summarization, TTS)
+                // Pass custom settings explicitly through the service method
                 _logger.LogInformation("Starting AI processing pipeline for episode: {CacheKey}", cacheKey);
-                var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey, HttpContext.RequestAborted);
+                var summaryAudioPath = await _audioService.ProcessAndSummarizeEpisodeAsync(cacheKey, cancellationToken);
 
                 stopwatch.Stop();
 
@@ -231,17 +232,17 @@ namespace Quintessentia.Controllers
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error downloading audio from URL: {Url}", audioUrl);
-                return View("Error", new ErrorViewModel { Message = "Failed to download the audio. Please check the URL and try again." });
+                return CreateErrorResult("Failed to download the audio. Please check the URL and try again.");
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error processing audio URL: {Url}", audioUrl);
-                return View("Error", new ErrorViewModel { Message = $"An error occurred while processing your request: {ex.Message}" });
+                return CreateErrorResult($"An error occurred while processing your request: {ex.Message}");
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation error processing audio URL: {Url}", audioUrl);
-                return View("Error", new ErrorViewModel { Message = $"An error occurred while processing your request: {ex.Message}" });
+                return CreateErrorResult($"An error occurred while processing your request: {ex.Message}");
             }
         }
 
@@ -255,17 +256,17 @@ namespace Quintessentia.Controllers
             }
             catch (FileNotFoundException)
             {
-                return NotFound("Episode not found.");
+                return CreateErrorResult("Episode not found.", StatusCodes.Status404NotFound);
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error loading result for episode: {EpisodeId}", episodeId);
-                return View("Error", new ErrorViewModel { Message = "An error occurred while loading the result." });
+                return CreateErrorResult("An error occurred while loading the result.");
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation error loading result for episode: {EpisodeId}", episodeId);
-                return View("Error", new ErrorViewModel { Message = "An error occurred while loading the result." });
+                return CreateErrorResult("An error occurred while loading the result.");
             }
         }
 
@@ -274,17 +275,17 @@ namespace Quintessentia.Controllers
         {
             try
             {
-                var stream = await _episodeQueryService.GetSummaryStreamAsync(episodeId, cancellationToken);
+                using var stream = await _episodeQueryService.GetSummaryStreamAsync(episodeId, cancellationToken);
                 return File(stream, "audio/mpeg", $"{episodeId}_summary.mp3");
             }
             catch (FileNotFoundException)
             {
-                return NotFound("Summary not found.");
+                return CreateErrorResult("Summary not found.", StatusCodes.Status404NotFound);
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error downloading summary: {EpisodeId}", episodeId);
-                return NotFound("Summary not found.");
+                return CreateErrorResult("Summary not found.", StatusCodes.Status404NotFound);
             }
         }
 
@@ -310,13 +311,7 @@ namespace Quintessentia.Controllers
             {
                 if (string.IsNullOrWhiteSpace(audioUrl))
                 {
-                    await SendStatusUpdate(new ProcessingStatus
-                    {
-                        Stage = "error",
-                        Message = "MP3 URL is required",
-                        IsError = true,
-                        ErrorMessage = "MP3 URL is required"
-                    });
+                    await SendStatusUpdate(ProcessingStatus.CreateError("MP3 URL is required"));
                     return;
                 }
 
@@ -345,17 +340,10 @@ namespace Quintessentia.Controllers
                     _logger.LogInformation("Using custom Azure OpenAI settings for streaming request");
                 }
 
-                // Validate URL format
-                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) || 
-                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                // Validate URL format and security
+                if (!_urlValidator.ValidateUrl(audioUrl, out var errorMessage))
                 {
-                    await SendStatusUpdate(new ProcessingStatus
-                    {
-                        Stage = "error",
-                        Message = "Invalid URL format",
-                        IsError = true,
-                        ErrorMessage = "Invalid URL format. Please provide a valid HTTP or HTTPS URL."
-                    });
+                    await SendStatusUpdate(ProcessingStatus.CreateError("Invalid URL", errorMessage));
                     return;
                 }
 
@@ -372,7 +360,7 @@ namespace Quintessentia.Controllers
                 // Send initial status
                 await SendStatusUpdate(new ProcessingStatus
                 {
-                    Stage = "downloading",
+                    StageEnum = ProcessingStage.Downloading,
                     Message = wasCached ? "Retrieving episode from cache..." : "Downloading episode...",
                     Progress = ProcessingProgress.Downloading,
                     EpisodeId = cacheKey,
@@ -384,31 +372,19 @@ namespace Quintessentia.Controllers
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
-                    await SendStatusUpdate(new ProcessingStatus
-                    {
-                        Stage = "error",
-                        Message = "Failed to download episode",
-                        IsError = true,
-                        ErrorMessage = "Failed to download or retrieve episode"
-                    });
+                    await SendStatusUpdate(ProcessingStatus.CreateError("Failed to download episode", "Failed to download or retrieve episode"));
                     return;
                 }
 
                 await SendStatusUpdate(new ProcessingStatus
                 {
-                    Stage = "downloaded",
+                    StageEnum = ProcessingStage.Downloaded,
                     Message = wasCached ? "Episode retrieved from cache" : "Episode downloaded",
                     Progress = ProcessingProgress.Downloaded,
                     EpisodeId = cacheKey,
                     FilePath = episodePath,
                     WasCached = wasCached
                 });
-
-                // Store custom settings in HttpContext for services to access
-                if (customSettings != null)
-                {
-                    HttpContext.Items["AzureOpenAISettings"] = customSettings;
-                }
 
                 // Process through AI pipeline with progress updates
                 _logger.LogInformation("Starting AI processing pipeline for episode: {CacheKey}", cacheKey);
@@ -443,7 +419,7 @@ namespace Quintessentia.Controllers
                 // Send final completion status
                 await SendStatusUpdate(new ProcessingStatus
                 {
-                    Stage = "complete",
+                    StageEnum = ProcessingStage.Complete,
                     Message = "Processing complete!",
                     Progress = ProcessingProgress.Complete,
                     IsComplete = true,
@@ -460,61 +436,43 @@ namespace Quintessentia.Controllers
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("Streaming processing was cancelled by client disconnect");
-                await SendStatusUpdate(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing was cancelled",
-                    IsError = true,
-                    ErrorMessage = "Processing was cancelled"
-                });
+                await SendStatusUpdate(ProcessingStatus.CreateError("Processing was cancelled"));
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error in streaming processing pipeline");
-                await SendStatusUpdate(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await SendStatusUpdate(ProcessingStatus.CreateError("Processing failed", ex.Message));
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error in streaming processing pipeline");
-                await SendStatusUpdate(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await SendStatusUpdate(ProcessingStatus.CreateError("Processing failed", ex.Message));
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation error in streaming processing pipeline");
-                await SendStatusUpdate(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await SendStatusUpdate(ProcessingStatus.CreateError("Processing failed", ex.Message));
             }
         }
 
         private async Task SendStatusUpdate(ProcessingStatus status)
         {
-            var json = JsonSerializer.Serialize(status, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            var json = JsonSerializer.Serialize(status, _jsonOptions.Options);
             
             var data = $"data: {json}\n\n";
             var bytes = Encoding.UTF8.GetBytes(data);
             
             await Response.Body.WriteAsync(bytes);
             await Response.Body.FlushAsync();
+        }
+
+        /// <summary>
+        /// Creates a consistent error result for the controller.
+        /// </summary>
+        private IActionResult CreateErrorResult(string message, int statusCode = StatusCodes.Status400BadRequest)
+        {
+            Response.StatusCode = statusCode;
+            return View("Error", new ErrorViewModel { Message = message });
         }
 
     }

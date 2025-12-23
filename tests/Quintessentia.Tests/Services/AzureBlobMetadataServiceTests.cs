@@ -15,6 +15,7 @@ namespace Quintessentia.Tests.Services
         private readonly Mock<IStorageService> _storageServiceMock;
         private readonly Mock<ILogger<AzureBlobMetadataService>> _loggerMock;
         private readonly Mock<IConfiguration> _configurationMock;
+        private readonly JsonOptionsService _jsonOptionsService;
         private readonly AzureBlobMetadataService _service;
 
         public AzureBlobMetadataServiceTests()
@@ -22,6 +23,7 @@ namespace Quintessentia.Tests.Services
             _storageServiceMock = new Mock<IStorageService>();
             _loggerMock = new Mock<ILogger<AzureBlobMetadataService>>();
             _configurationMock = new Mock<IConfiguration>();
+            _jsonOptionsService = new JsonOptionsService();
 
             // Setup default configuration values
             _configurationMock.Setup(c => c["AzureStorage:Containers:Episodes"]).Returns("episodes");
@@ -30,6 +32,7 @@ namespace Quintessentia.Tests.Services
 
             _service = new AzureBlobMetadataService(
                 _storageServiceMock.Object,
+                _jsonOptionsService,
                 _loggerMock.Object,
                 _configurationMock.Object);
         }
@@ -545,6 +548,7 @@ namespace Quintessentia.Tests.Services
             // Act
             var service = new AzureBlobMetadataService(
                 _storageServiceMock.Object,
+                _jsonOptionsService,
                 _loggerMock.Object,
                 configMock.Object);
 
@@ -562,6 +566,7 @@ namespace Quintessentia.Tests.Services
             // Act
             var service = new AzureBlobMetadataService(
                 _storageServiceMock.Object,
+                _jsonOptionsService,
                 _loggerMock.Object,
                 configMock.Object);
 

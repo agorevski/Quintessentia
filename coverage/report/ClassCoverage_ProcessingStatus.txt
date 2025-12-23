@@ -1,22 +1,27 @@
 ================================================================================
 Class Coverage Report: ProcessingStatus
 ================================================================================
-Generated: 2025-12-19 11:21:34
+Generated: 2025-12-23 14:18:48
 Full Name: Quintessentia.Models.ProcessingStatus
 Namespace: Quintessentia.Models
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       100% (14/14 lines)
-Branch Coverage:     100% (0/0 branches)
-Method Coverage:     100% (14/14 methods)
-Fully Covered:       100% (14/14 methods)
+Line Coverage:       90% (18/20 lines)
+Branch Coverage:     100% (2/2 branches)
+Method Coverage:     90% (18/20 methods)
+Fully Covered:       90% (18/20 methods)
 
 STATUS
 --------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
 
+UNCOVERED METHODS (2)
+--------------------------------------------------------------------------------  • get_StageEnum
+  • Create
+
 RECOMMENDATIONS
 --------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+Focus on the 2 uncovered method(s) listed above.
 
 For detailed line-by-line coverage, see: Quintessentia_ProcessingStatus.html
 

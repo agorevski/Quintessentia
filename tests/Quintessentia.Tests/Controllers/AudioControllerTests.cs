@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Quintessentia.Controllers;
 using Quintessentia.Models;
+using Quintessentia.Services;
 using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Tests.Controllers
@@ -16,6 +17,8 @@ namespace Quintessentia.Tests.Controllers
         private readonly Mock<IEpisodeQueryService> _episodeQueryServiceMock;
         private readonly Mock<IProcessingProgressService> _progressServiceMock;
         private readonly Mock<ICacheKeyService> _cacheKeyServiceMock;
+        private readonly Mock<IUrlValidator> _urlValidatorMock;
+        private readonly JsonOptionsService _jsonOptionsService;
         private readonly Mock<ILogger<AudioController>> _loggerMock;
         private readonly AudioController _controller;
 
@@ -25,17 +28,39 @@ namespace Quintessentia.Tests.Controllers
             _episodeQueryServiceMock = new Mock<IEpisodeQueryService>();
             _progressServiceMock = new Mock<IProcessingProgressService>();
             _cacheKeyServiceMock = new Mock<ICacheKeyService>();
+            _urlValidatorMock = new Mock<IUrlValidator>();
+            _jsonOptionsService = new JsonOptionsService();
             _loggerMock = new Mock<ILogger<AudioController>>();
 
             // Setup cache key service to return predictable keys
             _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>()))
                 .Returns<string>(url => "testcachekey123");
 
+            // Setup URL validator to accept valid URLs
+            _urlValidatorMock.Setup(v => v.ValidateUrl(It.IsAny<string>(), out It.Ref<string?>.IsAny))
+                .Returns((string url, out string? error) =>
+                {
+                    error = null;
+                    if (string.IsNullOrWhiteSpace(url))
+                    {
+                        error = "URL cannot be empty.";
+                        return false;
+                    }
+                    if (url.StartsWith("http://") || url.StartsWith("https://"))
+                    {
+                        return true;
+                    }
+                    error = "Invalid URL format.";
+                    return false;
+                });
+
             _controller = new AudioController(
                 _audioServiceMock.Object,
                 _episodeQueryServiceMock.Object,
                 _progressServiceMock.Object,
                 _cacheKeyServiceMock.Object,
+                _urlValidatorMock.Object,
+                _jsonOptionsService,
                 _loggerMock.Object
             );
 
@@ -92,34 +117,38 @@ namespace Quintessentia.Tests.Controllers
 
         #region TC-F-003: Invalid URL format
         [Fact]
-        public async Task Process_WithNullUrl_ReturnsBadRequest()
+        public async Task Process_WithNullUrl_ReturnsErrorView()
         {
             // Act
             var result = await _controller.Process(null!, CancellationToken.None);
 
-            // Assert
-            result.Should().BeOfType<BadRequestObjectResult>();
+            // Assert - Unified error response returns ViewResult with Error view
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
         }
 
         [Fact]
-        public async Task Process_WithEmptyUrl_ReturnsBadRequest()
+        public async Task Process_WithEmptyUrl_ReturnsErrorView()
         {
             // Act
             var result = await _controller.Process("", CancellationToken.None);
 
-            // Assert
-            result.Should().BeOfType<BadRequestObjectResult>();
+            // Assert - Unified error response returns ViewResult with Error view
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
         }
 
         [Fact]
-        public async Task Process_WithInvalidUrlFormat_ReturnsBadRequest()
+        public async Task Process_WithInvalidUrlFormat_ReturnsErrorView()
         {
             // Act
             var result = await _controller.Process("not-a-valid-url", CancellationToken.None);
 
-            // Assert
-            var badRequestResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-            badRequestResult.Value.Should().Be("Invalid URL format. Please provide a valid HTTP or HTTPS URL.");
+            // Assert - Unified error response returns ViewResult with Error view
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
+            var model = viewResult.Model.Should().BeOfType<ErrorViewModel>().Subject;
+            model.Message.Should().Contain("Invalid URL");
         }
         #endregion
 
@@ -172,7 +201,7 @@ namespace Quintessentia.Tests.Controllers
 
         #region TC-F-015-020: Custom settings override
         [Fact]
-        public async Task ProcessAndSummarize_WithCustomEndpoint_StoresInHttpContext()
+        public async Task ProcessAndSummarize_WithCustomEndpoint_ProcessesSuccessfully()
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
@@ -190,20 +219,14 @@ namespace Quintessentia.Tests.Controllers
                 settingsEndpoint: customEndpoint
             );
 
-            // Assert
+            // Assert - Custom settings no longer stored in HttpContext (removed anti-pattern)
             var viewResult = result.Should().BeOfType<ViewResult>().Subject;
             var model = viewResult.Model.Should().BeOfType<AudioProcessResult>().Subject;
             model.Success.Should().BeTrue();
-            
-            // Verify custom settings were stored in HttpContext
-            _controller.HttpContext.Items.Should().ContainKey("AzureOpenAISettings");
-            var settings = _controller.HttpContext.Items["AzureOpenAISettings"] as AzureOpenAISettings;
-            settings.Should().NotBeNull();
-            settings!.Endpoint.Should().Be(customEndpoint);
         }
 
         [Fact]
-        public async Task ProcessAndSummarize_WithCustomTtsSpeed_StoresInHttpContext()
+        public async Task ProcessAndSummarize_WithCustomTtsSpeed_ProcessesSuccessfully()
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
@@ -221,10 +244,9 @@ namespace Quintessentia.Tests.Controllers
                 settingsTtsSpeedRatio: customSpeed
             );
 
-            // Assert
-            var settings = _controller.HttpContext.Items["AzureOpenAISettings"] as AzureOpenAISettings;
-            settings.Should().NotBeNull();
-            settings!.TtsSpeedRatio.Should().Be(customSpeed);
+            // Assert - Custom settings no longer stored in HttpContext (removed anti-pattern)
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Result");
         }
         #endregion
 
@@ -266,8 +288,9 @@ namespace Quintessentia.Tests.Controllers
             // Act
             var result = await _controller.Result(episodeId, CancellationToken.None);
 
-            // Assert
-            result.Should().BeOfType<NotFoundObjectResult>();
+            // Assert - Unified error response
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
         }
 
         [Fact]
@@ -324,7 +347,7 @@ namespace Quintessentia.Tests.Controllers
         }
 
         [Fact]
-        public async Task DownloadSummary_WithNonExistentSummary_ReturnsNotFound()
+        public async Task DownloadSummary_WithNonExistentSummary_ReturnsErrorView()
         {
             // Arrange
             var episodeId = "nonexistent";
@@ -334,8 +357,9 @@ namespace Quintessentia.Tests.Controllers
             // Act
             var result = await _controller.DownloadSummary(episodeId, CancellationToken.None);
 
-            // Assert
-            result.Should().BeOfType<NotFoundObjectResult>();
+            // Assert - Unified error response
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
         }
         #endregion
 
@@ -369,7 +393,7 @@ namespace Quintessentia.Tests.Controllers
             // Act
             var result = await _controller.Download(episodeId, CancellationToken.None);
 
-            // Assert
+            // Assert - Download returns NotFound directly as it's a file endpoint
             result.Should().BeOfType<NotFoundObjectResult>();
         }
         #endregion
@@ -518,7 +542,7 @@ namespace Quintessentia.Tests.Controllers
         }
 
         [Fact]
-        public async Task ProcessAndSummarizeStream_WithCustomSettings_AppliesSettings()
+        public async Task ProcessAndSummarizeStream_WithCustomSettings_ProcessesSuccessfully()
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
@@ -540,11 +564,12 @@ namespace Quintessentia.Tests.Controllers
                 settingsTtsSpeedRatio: 1.5f
             );
 
-            // Assert
-            var settings = httpContext.Items["AzureOpenAISettings"] as AzureOpenAISettings;
-            settings.Should().NotBeNull();
-            settings!.Endpoint.Should().Be("https://custom.openai.azure.com/");
-            settings.TtsSpeedRatio.Should().Be(1.5f);
+            // Assert - Custom settings no longer stored in HttpContext (removed anti-pattern)
+            // Verify the streaming endpoint ran without errors by checking response body contains data
+            httpContext.Response.Body.Position = 0;
+            var reader = new StreamReader(httpContext.Response.Body);
+            var responseBody = await reader.ReadToEndAsync();
+            responseBody.Should().NotBeNullOrEmpty();
         }
 
         [Fact]
@@ -741,7 +766,7 @@ namespace Quintessentia.Tests.Controllers
 
         #region ProcessAndSummarize Additional Tests
         [Fact]
-        public async Task ProcessAndSummarize_WithAllCustomSettings_StoresAllSettings()
+        public async Task ProcessAndSummarize_WithAllCustomSettings_ProcessesSuccessfully()
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
@@ -767,31 +792,27 @@ namespace Quintessentia.Tests.Controllers
                 settingsEnableAutoplay: true
             );
 
-            // Assert
-            var settings = _controller.HttpContext.Items["AzureOpenAISettings"] as AzureOpenAISettings;
-            settings.Should().NotBeNull();
-            settings!.Endpoint.Should().Be("https://custom.openai.azure.com/");
-            settings.Key.Should().Be("custom-key");
-            settings.WhisperDeployment.Should().Be("custom-whisper");
-            settings.GptDeployment.Should().Be("custom-gpt");
-            settings.TtsDeployment.Should().Be("custom-tts");
-            settings.TtsSpeedRatio.Should().Be(1.5f);
-            settings.TtsResponseFormat.Should().Be("wav");
-            settings.EnableAutoplay.Should().BeTrue();
+            // Assert - Custom settings no longer stored in HttpContext (removed anti-pattern)
+            // Instead we verify the action completes successfully
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Result");
+            var model = viewResult.Model.Should().BeOfType<AudioProcessResult>().Subject;
+            model.Success.Should().BeTrue();
         }
 
         [Fact]
-        public async Task ProcessAndSummarize_WithInvalidUrl_ReturnsBadRequest()
+        public async Task ProcessAndSummarize_WithInvalidUrl_ReturnsErrorView()
         {
             // Act
             var result = await _controller.ProcessAndSummarize("invalid-url");
 
-            // Assert
-            result.Should().BeOfType<BadRequestObjectResult>();
+            // Assert - Unified error response
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
         }
 
         [Fact]
-        public async Task ProcessAndSummarize_WhenGetOrDownloadReturnsNull_ReturnsBadRequest()
+        public async Task ProcessAndSummarize_WhenGetOrDownloadReturnsNull_ReturnsErrorView()
         {
             // Arrange
             var testUrl = "https://example.com/test.mp3";
@@ -805,8 +826,9 @@ namespace Quintessentia.Tests.Controllers
             // Act
             var result = await _controller.ProcessAndSummarize(testUrl);
 
-            // Assert
-            result.Should().BeOfType<BadRequestObjectResult>();
+            // Assert - Unified error response
+            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
+            viewResult.ViewName.Should().Be("Error");
         }
         #endregion
     }

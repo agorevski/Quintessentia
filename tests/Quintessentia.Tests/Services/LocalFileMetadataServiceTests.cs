@@ -12,6 +12,7 @@ namespace Quintessentia.Tests.Services
     {
         private readonly Mock<ILogger<LocalFileMetadataService>> _mockLogger;
         private readonly Mock<IConfiguration> _mockConfiguration;
+        private readonly JsonOptionsService _jsonOptionsService;
         private readonly LocalFileMetadataService _service;
         private readonly string _testBasePath;
 
@@ -19,11 +20,12 @@ namespace Quintessentia.Tests.Services
         {
             _mockLogger = new Mock<ILogger<LocalFileMetadataService>>();
             _mockConfiguration = new Mock<IConfiguration>();
+            _jsonOptionsService = new JsonOptionsService();
 
             _testBasePath = Path.Combine(Path.GetTempPath(), "LocalFileMetadataServiceTests", Guid.NewGuid().ToString());
             _mockConfiguration.Setup(c => c["LocalStorage:BasePath"]).Returns(_testBasePath);
 
-            _service = new LocalFileMetadataService(_mockConfiguration.Object, _mockLogger.Object);
+            _service = new LocalFileMetadataService(_mockConfiguration.Object, _jsonOptionsService, _mockLogger.Object);
         }
 
         public void Dispose()
@@ -360,10 +362,10 @@ namespace Quintessentia.Tests.Services
             var metadataPath = Path.Combine(_testBasePath, "metadata", "episodes", "test-key.json");
             var json = await File.ReadAllTextAsync(metadataPath);
 
-            // Assert
-            json.Should().Contain("CacheKey");
+            // Assert - Now uses camelCase due to unified JsonOptionsService
+            json.Should().Contain("cacheKey");
             json.Should().Contain("test-key");
-            json.Should().Contain("OriginalUrl");
+            json.Should().Contain("originalUrl");
             json.Should().Contain("https://example.com/audio.mp3");
         }
 

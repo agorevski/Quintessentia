@@ -4,6 +4,9 @@ using System.Text.Json;
 
 namespace Quintessentia.Services
 {
+    /// <summary>
+    /// Local file-based implementation of metadata service for development.
+    /// </summary>
     public class LocalFileMetadataService : IMetadataService
     {
         private readonly string _basePath;
@@ -14,20 +17,16 @@ namespace Quintessentia.Services
 
         public LocalFileMetadataService(
             IConfiguration configuration,
+            JsonOptionsService jsonOptionsService,
             ILogger<LocalFileMetadataService> logger)
         {
             _logger = logger;
+            _jsonOptions = jsonOptionsService.Options;
             
             var storageBasePath = configuration["LocalStorage:BasePath"] ?? "LocalStorageData";
             _basePath = Path.Combine(storageBasePath, "metadata");
             _episodesMetadataPath = Path.Combine(_basePath, "episodes");
             _summariesMetadataPath = Path.Combine(_basePath, "summaries");
-
-            _jsonOptions = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNameCaseInsensitive = true
-            };
 
             // Ensure directories exist
             InitializeDirectories();

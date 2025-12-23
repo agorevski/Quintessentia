@@ -4,6 +4,9 @@ using Quintessentia.Utilities;
 
 namespace Quintessentia.Services
 {
+    /// <summary>
+    /// Service for querying episode and summary information.
+    /// </summary>
     public class EpisodeQueryService : IEpisodeQueryService
     {
         private readonly IStorageService _storageService;
@@ -25,6 +28,8 @@ namespace Quintessentia.Services
             _cacheKeyService = cacheKeyService;
             _logger = logger;
         }
+
+        /// <inheritdoc/>
 
         public async Task<AudioProcessResult> GetResultAsync(string episodeId, CancellationToken cancellationToken = default)
         {
@@ -100,6 +105,13 @@ namespace Quintessentia.Services
             };
         }
 
+        /// <summary>
+        /// Gets a stream for downloading an episode audio file.
+        /// <para>
+        /// <b>Important:</b> The caller is responsible for disposing the returned stream.
+        /// </para>
+        /// </summary>
+        /// <inheritdoc/>
         public async Task<Stream> GetEpisodeStreamAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
@@ -117,7 +129,7 @@ namespace Quintessentia.Services
                 throw new FileNotFoundException($"Episode not found: {cacheKey}");
             }
 
-            // Stream from blob storage
+            // Stream from blob storage - caller is responsible for disposing
             var containerName = _storageConfiguration.GetContainerName("Episodes");
             var blobName = $"{cacheKey}.mp3";
 
@@ -128,6 +140,13 @@ namespace Quintessentia.Services
             return stream;
         }
 
+        /// <summary>
+        /// Gets a stream for downloading a summary audio file.
+        /// <para>
+        /// <b>Important:</b> The caller is responsible for disposing the returned stream.
+        /// </para>
+        /// </summary>
+        /// <inheritdoc/>
         public async Task<Stream> GetSummaryStreamAsync(string episodeId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(episodeId))
@@ -145,7 +164,7 @@ namespace Quintessentia.Services
                 throw new FileNotFoundException($"Summary not found: {cacheKey}");
             }
 
-            // Stream from blob storage
+            // Stream from blob storage - caller is responsible for disposing
             var containerName = _storageConfiguration.GetContainerName("Summaries");
             var blobName = $"{cacheKey}_summary.mp3";
 

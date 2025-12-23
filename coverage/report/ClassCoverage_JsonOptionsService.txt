@@ -1,0 +1,23 @@
+================================================================================
+Class Coverage Report: JsonOptionsService
+================================================================================
+Generated: 2025-12-23 14:18:48
+Full Name: Quintessentia.Services.JsonOptionsService
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       100% (10/10 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     100% (2/2 methods)
+Fully Covered:       100% (2/2 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Excellent coverage! Consider adding edge case tests.
+
+For detailed line-by-line coverage, see: Quintessentia_JsonOptionsService.html
+
+================================================================================

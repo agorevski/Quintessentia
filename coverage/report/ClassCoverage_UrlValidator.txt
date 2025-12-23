@@ -1,0 +1,30 @@
+================================================================================
+Class Coverage Report: UrlValidator
+================================================================================
+Generated: 2025-12-23 14:18:48
+Full Name: Quintessentia.Services.UrlValidator
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       0% (0/75 lines)
+Branch Coverage:     0% (0/42 branches)
+Method Coverage:     0% (0/4 methods)
+Fully Covered:       0% (0/4 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 70% improvement
+
+UNCOVERED METHODS (4)
+--------------------------------------------------------------------------------  • ValidateUrl
+  • IsValidHttpUrl
+  • IsPrivateIpAddress
+  • .ctor
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
+Focus on the 4 uncovered method(s) listed above.
+
+For detailed line-by-line coverage, see: Quintessentia_UrlValidator.html
+
+================================================================================

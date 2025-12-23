@@ -8,6 +8,12 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
+// Register shared JSON serializer options
+builder.Services.AddSingleton<JsonOptionsService>();
+
+// Register URL validator for SSRF protection
+builder.Services.AddSingleton<IUrlValidator, UrlValidator>();
+
 // Use mock storage services in Development, Azure services in other environments
 if (builder.Environment.IsDevelopment())
 {

@@ -5,6 +5,9 @@ using Quintessentia.Services.Contracts;
 
 namespace Quintessentia.Services
 {
+    /// <summary>
+    /// Azure Blob Storage-based implementation of metadata service.
+    /// </summary>
     public class AzureBlobMetadataService : IMetadataService
     {
         private readonly IStorageService _storageService;
@@ -14,18 +17,14 @@ namespace Quintessentia.Services
 
         public AzureBlobMetadataService(
             IStorageService storageService,
+            JsonOptionsService jsonOptionsService,
             ILogger<AzureBlobMetadataService> logger,
             IConfiguration configuration)
         {
             _storageService = storageService;
             _logger = logger;
             _configuration = configuration;
-            
-            _jsonOptions = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
+            _jsonOptions = jsonOptionsService.Options;
         }
 
         private string GetContainerName(string containerType)

@@ -6,22 +6,29 @@ using Quintessentia.Utilities;
 
 namespace Quintessentia.Services
 {
+    /// <summary>
+    /// Service for managing audio processing with real-time progress updates.
+    /// </summary>
     public class ProcessingProgressService : IProcessingProgressService
     {
         private readonly IAudioService _audioService;
         private readonly ICacheKeyService _cacheKeyService;
+        private readonly IUrlValidator _urlValidator;
         private readonly ILogger<ProcessingProgressService> _logger;
 
         public ProcessingProgressService(
             IAudioService audioService,
             ICacheKeyService cacheKeyService,
+            IUrlValidator urlValidator,
             ILogger<ProcessingProgressService> logger)
         {
             _audioService = audioService;
             _cacheKeyService = cacheKeyService;
+            _urlValidator = urlValidator;
             _logger = logger;
         }
 
+        /// <inheritdoc/>
         public async Task<AudioProcessResult> ProcessWithProgressAsync(
             string audioUrl,
             AzureOpenAISettings? customSettings,
@@ -32,30 +39,11 @@ namespace Quintessentia.Services
 
             try
             {
-                // Validate URL
-                if (string.IsNullOrWhiteSpace(audioUrl))
+                // Validate URL using centralized validator
+                if (!_urlValidator.ValidateUrl(audioUrl, out var errorMessage))
                 {
-                    await onProgress(new ProcessingStatus
-                    {
-                        Stage = "error",
-                        Message = "MP3 URL is required",
-                        IsError = true,
-                        ErrorMessage = "MP3 URL is required"
-                    });
-                    throw new ArgumentException("MP3 URL is required.", nameof(audioUrl));
-                }
-
-                if (!Uri.TryCreate(audioUrl, UriKind.Absolute, out var uri) ||
-                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                {
-                    await onProgress(new ProcessingStatus
-                    {
-                        Stage = "error",
-                        Message = "Invalid URL format",
-                        IsError = true,
-                        ErrorMessage = "Invalid URL format. Please provide a valid HTTP or HTTPS URL."
-                    });
-                    throw new ArgumentException("Invalid URL format.", nameof(audioUrl));
+                    await onProgress(ProcessingStatus.CreateError("Invalid URL", errorMessage));
+                    throw new ArgumentException(errorMessage ?? "Invalid URL.", nameof(audioUrl));
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -70,7 +58,7 @@ namespace Quintessentia.Services
                 // Send initial status
                 await onProgress(new ProcessingStatus
                 {
-                    Stage = "downloading",
+                    StageEnum = ProcessingStage.Downloading,
                     Message = wasCached ? "Retrieving episode from cache..." : "Downloading episode...",
                     Progress = ProcessingProgress.Downloading,
                     EpisodeId = cacheKey,
@@ -84,19 +72,13 @@ namespace Quintessentia.Services
 
                 if (string.IsNullOrEmpty(episodePath))
                 {
-                    await onProgress(new ProcessingStatus
-                    {
-                        Stage = "error",
-                        Message = "Failed to download episode",
-                        IsError = true,
-                        ErrorMessage = "Failed to download or retrieve episode"
-                    });
+                    await onProgress(ProcessingStatus.CreateError("Failed to download episode", "Failed to download or retrieve episode"));
                     throw new InvalidOperationException("Failed to download or retrieve episode");
                 }
 
                 await onProgress(new ProcessingStatus
                 {
-                    Stage = "downloaded",
+                    StageEnum = ProcessingStage.Downloaded,
                     Message = wasCached ? "Episode retrieved from cache" : "Episode downloaded",
                     Progress = ProcessingProgress.Downloaded,
                     EpisodeId = cacheKey,
@@ -157,7 +139,7 @@ namespace Quintessentia.Services
                 // Send final completion status
                 await onProgress(new ProcessingStatus
                 {
-                    Stage = "complete",
+                    StageEnum = ProcessingStage.Complete,
                     Message = "Processing complete!",
                     Progress = ProcessingProgress.Complete,
                     IsComplete = true,
@@ -176,61 +158,31 @@ namespace Quintessentia.Services
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("Processing was cancelled");
-                await onProgress(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing was cancelled",
-                    IsError = true,
-                    ErrorMessage = "Processing was cancelled by user"
-                });
+                await onProgress(ProcessingStatus.CreateError("Processing was cancelled", "Processing was cancelled by user"));
                 throw;
             }
             catch (ArgumentException ex)
             {
                 _logger.LogError(ex, "Invalid argument in processing pipeline");
-                await onProgress(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await onProgress(ProcessingStatus.CreateError("Processing failed", ex.Message));
                 throw;
             }
             catch (InvalidOperationException ex)
             {
                 _logger.LogError(ex, "Invalid operation in processing pipeline");
-                await onProgress(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await onProgress(ProcessingStatus.CreateError("Processing failed", ex.Message));
                 throw;
             }
             catch (IOException ex)
             {
                 _logger.LogError(ex, "IO error in processing pipeline");
-                await onProgress(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await onProgress(ProcessingStatus.CreateError("Processing failed", ex.Message));
                 throw;
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error in processing pipeline");
-                await onProgress(new ProcessingStatus
-                {
-                    Stage = "error",
-                    Message = "Processing failed",
-                    IsError = true,
-                    ErrorMessage = ex.Message
-                });
+                await onProgress(ProcessingStatus.CreateError("Processing failed", ex.Message));
                 throw;
             }
         }

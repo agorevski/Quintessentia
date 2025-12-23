@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: AudioSummary
 ================================================================================
-Generated: 2025-12-19 11:21:34
+Generated: 2025-12-23 14:18:48
 Full Name: Quintessentia.Models.AudioSummary
 Namespace: Quintessentia.Models
 

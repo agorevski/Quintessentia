@@ -209,78 +209,77 @@ public class SummarizationException : Exception { }
 ### 4. God Object Pattern in AudioController
 
 **Severity**: High  
-**Location**: `AudioController.cs` (580+ lines)
+**Location**: `AudioController.cs` (580+ lines)  
+**Status**: ✅ **RESOLVED**
 
 #### Problem
 
 Controller has too many responsibilities and dependencies, violating Single Responsibility Principle.
 
-#### Code Examples
+#### Resolution
+
+**Date Resolved**: 2025-12-23  
+**Changes Made**:
+1. Created `IEpisodeQueryService` interface and `EpisodeQueryService` implementation for episode/result retrieval
+2. Created `ICacheKeyService` interface and `CacheKeyService` implementation for cache key generation
+3. Created `IProcessingProgressService` interface and `ProcessingProgressService` implementation for progress tracking
+4. Refactored `AudioController` to use only focused dependencies:
+   - `IAudioService` - Core audio processing
+   - `IEpisodeQueryService` - Episode/result retrieval
+   - `IProcessingProgressService` - Progress tracking
+   - `ICacheKeyService` - Cache key generation
+   - `ILogger<AudioController>` - Logging
+
+5. Removed direct dependencies on `IStorageService`, `IMetadataService`, and `IConfiguration`
+6. Registered new services in `Program.cs`
+
+#### Impact After Fix
+
+- **Easier to Test**: Controller has focused dependencies, each service can be tested independently
+- **Loose Coupling**: Controller no longer knows about infrastructure details
+- **Better Maintainability**: Each service has a single responsibility
+- **No Code Duplication**: Cache key generation centralized in `ICacheKeyService`
+
+#### Original Problem Code
 
 ```csharp
-// AudioController.cs - Constructor has 5 dependencies
+// ❌ BEFORE - Constructor had 5 problematic dependencies
 public AudioController(
     IAudioService audioService,
-    IStorageService blobStorageService,      // ❌ Controller knows about storage
-    IMetadataService metadataService,        // ❌ Controller knows about metadata
+    IStorageService blobStorageService,      // ❌ Controller knew about storage
+    IMetadataService metadataService,        // ❌ Controller knew about metadata
     ILogger<AudioController> logger,
-    IConfiguration configuration)            // ❌ Controller reads config directly
+    IConfiguration configuration)            // ❌ Controller read config directly
 {
     // ...
 }
-
-// Controller handles:
-// - HTTP request/response
-// - Business logic validation
-// - Cache key generation
-// - SSE streaming
-// - Configuration management
-// - Blob storage operations
-// - Metadata queries
 ```
 
-#### Impact
-
-- **Hard to Test**: Requires mocking 5 dependencies
-- **Tight Coupling**: Controller knows too much about infrastructure
-- **Poor Maintainability**: Changes ripple through many responsibilities
-- **Code Duplication**: Cache key generation repeated in controller and service
-
-#### Recommended Fix
-
-Extract responsibilities into separate services:
+#### Example Implementation
 
 ```csharp
-// ✅ Create specialized services
-public interface IEpisodeQueryService
-{
-    Task<AudioProcessResult> GetResultAsync(string episodeId);
-    Task<Stream> GetEpisodeStreamAsync(string episodeId);
-    Task<Stream> GetSummaryStreamAsync(string episodeId);
-}
-
-public interface ICacheKeyService
-{
-    string GenerateFromUrl(string url);
-}
-
-public interface IProcessingProgressService
-{
-    Task StreamProgressAsync(
-        string audioUrl, 
-        AzureOpenAISettings? customSettings,
-        Func<ProcessingStatus, Task> onProgress);
-}
-
-// Simplified controller
+// ✅ IMPLEMENTED - Simplified controller with focused dependencies
 public class AudioController : Controller
 {
     private readonly IAudioService _audioService;
     private readonly IEpisodeQueryService _episodeQueryService;
     private readonly IProcessingProgressService _progressService;
+    private readonly ICacheKeyService _cacheKeyService;
     private readonly ILogger<AudioController> _logger;
 
-    // Now only 4 focused dependencies
+    public AudioController(
+        IAudioService audioService,
+        IEpisodeQueryService episodeQueryService,
+        IProcessingProgressService progressService,
+        ICacheKeyService cacheKeyService,
+        ILogger<AudioController> logger)
+    {
+        _audioService = audioService;
+        _episodeQueryService = episodeQueryService;
+        _progressService = progressService;
+        _cacheKeyService = cacheKeyService;
+        _logger = logger;
+    }
 }
 ```
 
@@ -949,7 +948,7 @@ _logger.LogInformation(
 ### Priority 2: High Priority Fixes (Next Sprint)
 
 3. **Replace broad exception handling** - Catch specific exceptions
-4. **Refactor AudioController** - Extract services to reduce responsibilities
+4. ~~**Refactor AudioController**~~ - ✅ **COMPLETED** (2025-12-23) - Extracted services to reduce responsibilities
 5. ~~**Add cancellation token support**~~ - ✅ **COMPLETED** (2025-11-16)
 
 **Estimated Effort**: 1 week (remaining items)  
@@ -1006,6 +1005,6 @@ After fixing these anti-patterns, ensure:
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: 2025-11-15*  
+*Document Version: 1.1*  
+*Last Updated: 2025-12-23*  
 *Reviewed By: AI Code Analysis*

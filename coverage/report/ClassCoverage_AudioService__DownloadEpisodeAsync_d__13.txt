@@ -1,0 +1,27 @@
+================================================================================
+Class Coverage Report: AudioService/<DownloadEpisodeAsync>d__13
+================================================================================
+Generated: 2025-12-23 14:18:48
+Full Name: Quintessentia.Services.AudioService/<DownloadEpisodeAsync>d__13
+Namespace: Quintessentia.Services
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       73% (27/37 lines)
+Branch Coverage:     100% (0/0 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 73% (27/37 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+Improve coverage of 1 partially covered method(s).
+
+For detailed line-by-line coverage, see: Quintessentia_AudioService/<DownloadEpisodeAsync>d__13.html
+
+================================================================================

@@ -1,13 +1,13 @@
 ================================================================================
 Class Coverage Report: LocalFileMetadataService
 ================================================================================
-Generated: 2025-12-19 11:21:34
+Generated: 2025-12-23 14:18:48
 Full Name: Quintessentia.Services.LocalFileMetadataService
 Namespace: Quintessentia.Services
 
 COVERAGE SUMMARY
 --------------------------------------------------------------------------------
-Line Coverage:       75.5% (74/98 lines)
+Line Coverage:       74.7% (71/95 lines)
 Branch Coverage:     90% (9/10 branches)
 Method Coverage:     100% (8/8 methods)
 Fully Covered:       50% (4/8 methods)
