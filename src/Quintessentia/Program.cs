@@ -1,3 +1,4 @@
+using Quintessentia.Controllers;
 using Quintessentia.Services.Contracts;
 using Quintessentia.Services;
 
@@ -5,6 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Register focused controllers for DI (used by AudioController facade)
+builder.Services.AddScoped<ProcessingController>();
+builder.Services.AddScoped<DownloadController>();
+builder.Services.AddScoped<StreamController>();
+builder.Services.AddScoped<ResultController>();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
