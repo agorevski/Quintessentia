@@ -2,6 +2,10 @@
 **/bin/*
 **/obj/*
 
+# Secrets - use appsettings.template.json as reference
+**/appsettings.json
+!**/appsettings.template.json
+
 # Code Coverage
 coverage/*
 !coverage/report/
