@@ -1,7 +1,7 @@
 ================================================================================
 Class Coverage Report: ProcessingProgressService/<>c__DisplayClass5_0/<<ProcessWithProgressAsync>b__0>d
 ================================================================================
-Generated: 2025-12-23 14:18:48
+Generated: 2025-12-23 16:08:01
 Full Name: Quintessentia.Services.ProcessingProgressService/<>c__DisplayClass5_0/<<ProcessWithProgressAsync>b__0>d
 Namespace: Quintessentia.Services
 

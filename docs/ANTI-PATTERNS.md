@@ -17,61 +17,60 @@ This document catalogs development anti-patterns found in the Quintessentia code
 ### 1. Blocking Async Calls with .Result
 
 **Severity**: Critical  
-**Location**: `AudioService.cs`
+**Location**: `AudioService.cs`  
+**Status**: ✅ **RESOLVED**
 
 #### Problem
 
 Using `.Result` on async methods blocks the calling thread and can cause deadlocks in ASP.NET Core applications.
 
-#### Code Examples
+#### Resolution
+
+**Date Resolved**: 2025-12-23  
+**Changes Made**:
+1. Converted `IsEpisodeCached` to `IsEpisodeCachedAsync` with proper async/await pattern
+2. Converted `IsSummaryCached` to `IsSummaryCachedAsync` with proper async/await pattern
+3. Updated all calling code to await these methods
+
+#### Original Problem Code
 
 ```csharp
-// AudioService.cs - Line ~75
+// ❌ BEFORE - Blocking calls
 public bool IsEpisodeCached(string episodeId)
 {
     var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-    return _metadataService.EpisodeExistsAsync(cacheKey).Result;  // ❌ BLOCKING
+    return _metadataService.EpisodeExistsAsync(cacheKey).Result;  // BLOCKING
 }
 
-// AudioService.cs - Line ~340
 public bool IsSummaryCached(string episodeId)
 {
     var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-    return _metadataService.SummaryExistsAsync(cacheKey).Result;  // ❌ BLOCKING
+    return _metadataService.SummaryExistsAsync(cacheKey).Result;  // BLOCKING
 }
 ```
 
-#### Impact
-
-- **Thread Pool Exhaustion**: Blocks threads waiting for async operations
-- **Deadlock Risk**: Can cause deadlocks in ASP.NET Core request pipeline
-- **Performance Degradation**: Reduces application throughput
-- **Scalability Issues**: Prevents efficient resource utilization
-
-#### Recommended Fix
-
-Convert methods to async:
+#### Fixed Implementation
 
 ```csharp
-// ✅ CORRECT
-public async Task<bool> IsEpisodeCachedAsync(string episodeId)
+// ✅ IMPLEMENTED
+public async Task<bool> IsEpisodeCachedAsync(string episodeId, CancellationToken cancellationToken = default)
 {
-    var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-    return await _metadataService.EpisodeExistsAsync(cacheKey);
+    var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
+    return await _metadataService.EpisodeExistsAsync(cacheKey, cancellationToken);
 }
 
-public async Task<bool> IsSummaryCachedAsync(string episodeId)
+public async Task<bool> IsSummaryCachedAsync(string episodeId, CancellationToken cancellationToken = default)
 {
-    var cacheKey = GenerateCacheKeyFromUrl(episodeId);
-    return await _metadataService.SummaryExistsAsync(cacheKey);
+    var cacheKey = _cacheKeyService.GenerateFromUrl(episodeId);
+    return await _metadataService.SummaryExistsAsync(cacheKey, cancellationToken);
 }
 ```
-
-Update all calling code to await these methods.
 
 ---
 
 ### 2. Implicit Dependencies via HttpContext.Items
+
+**Status**: ✅ **RESOLVED**
 
 **Severity**: Critical  
 **Location**: `AudioController.cs`, `AzureOpenAIService.cs`
@@ -80,53 +79,33 @@ Update all calling code to await these methods.
 
 Passing custom settings through `HttpContext.Items` dictionary creates hidden dependencies and runtime errors.
 
-#### Code Examples
+#### Resolution
+
+**Date Resolved**: 2025-12-23  
+**Changes Made**:
+1. Removed `HttpContext.Items` usage for settings passing
+2. Custom settings are now passed through explicit controller parameters
+3. The anti-pattern is no longer present in the codebase
+
+#### Original Problem Code
 
 ```csharp
-// AudioController.cs - Line ~150
+// ❌ BEFORE - Hidden dependency via HttpContext.Items
 if (customSettings != null)
 {
-    HttpContext.Items["AzureOpenAISettings"] = customSettings;  // ❌ HIDDEN DEPENDENCY
+    HttpContext.Items["AzureOpenAISettings"] = customSettings;
 }
 
-// AzureOpenAIService.cs - Line ~45
 private Models.AzureOpenAISettings? GetCustomSettings()
 {
     return _httpContextAccessor.HttpContext?.Items["AzureOpenAISettings"] 
-        as Models.AzureOpenAISettings;  // ❌ MAGIC STRING, UNSAFE CAST
+        as Models.AzureOpenAISettings;
 }
 ```
 
-#### Impact
+#### Fixed Implementation
 
-- **Runtime Errors**: Typos in dictionary keys cause silent failures
-- **Testing Difficulty**: Requires mocking HttpContext for unit tests
-- **Hidden Coupling**: Not obvious from method signatures
-- **Type Safety**: No compile-time checking
-- **Concurrency Issues**: HttpContext.Items not thread-safe across requests
-
-#### Recommended Fix
-
-Use explicit parameters or scoped services:
-
-```csharp
-// ✅ OPTION 1: Explicit parameter
-public interface IAzureOpenAIService
-{
-    Task<string> TranscribeAudioAsync(
-        string audioFilePath, 
-        AzureOpenAISettings? customSettings = null);
-}
-
-// ✅ OPTION 2: Scoped service
-public class RequestScopedSettings
-{
-    public AzureOpenAISettings? CustomSettings { get; set; }
-}
-
-// Register as scoped
-builder.Services.AddScoped<RequestScopedSettings>();
-```
+Custom settings are now passed directly through controller action parameters (e.g., `settingsEndpoint`, `settingsKey`, etc.) without using HttpContext.Items.
 
 ---
 

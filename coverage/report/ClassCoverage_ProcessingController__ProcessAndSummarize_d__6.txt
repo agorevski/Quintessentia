@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: ProcessingController/<ProcessAndSummarize>d__6
+================================================================================
+Generated: 2025-12-23 16:08:01
+Full Name: Quintessentia.Controllers.ProcessingController/<ProcessAndSummarize>d__6
+Namespace: Quintessentia.Controllers
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       82.4% (47/57 lines)
+Branch Coverage:     75% (9/12 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------✓ MEETS THRESHOLD (70%)
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 82% (47/57 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Good coverage. Focus on uncovered branches and edge cases.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_ProcessingController/<ProcessAndSummarize>d__6.html
+
+================================================================================

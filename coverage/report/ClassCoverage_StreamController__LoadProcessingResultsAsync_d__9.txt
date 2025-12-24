@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: StreamController/<LoadProcessingResultsAsync>d__9
+================================================================================
+Generated: 2025-12-23 16:08:01
+Full Name: Quintessentia.Controllers.StreamController/<LoadProcessingResultsAsync>d__9
+Namespace: Quintessentia.Controllers
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       55.6% (10/18 lines)
+Branch Coverage:     50% (2/4 branches)
+Method Coverage:     100% (1/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 14.4% improvement
+
+PARTIALLY COVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext: 56% (10/18 lines)
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Moderate coverage. Add tests for uncovered methods and branches.
+Improve coverage of 1 partially covered method(s).
+Branch coverage is lower than line coverage - add tests for conditional logic.
+
+For detailed line-by-line coverage, see: Quintessentia_StreamController/<LoadProcessingResultsAsync>d__9.html
+
+================================================================================

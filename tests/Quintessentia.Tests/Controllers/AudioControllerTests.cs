@@ -19,7 +19,14 @@ namespace Quintessentia.Tests.Controllers
         private readonly Mock<ICacheKeyService> _cacheKeyServiceMock;
         private readonly Mock<IUrlValidator> _urlValidatorMock;
         private readonly JsonOptionsService _jsonOptionsService;
-        private readonly Mock<ILogger<AudioController>> _loggerMock;
+        private readonly Mock<ILogger<ProcessingController>> _processingLoggerMock;
+        private readonly Mock<ILogger<DownloadController>> _downloadLoggerMock;
+        private readonly Mock<ILogger<StreamController>> _streamLoggerMock;
+        private readonly Mock<ILogger<ResultController>> _resultLoggerMock;
+        private readonly ProcessingController _processingController;
+        private readonly DownloadController _downloadController;
+        private readonly StreamController _streamController;
+        private readonly ResultController _resultController;
         private readonly AudioController _controller;
 
         public AudioControllerTests()
@@ -30,7 +37,10 @@ namespace Quintessentia.Tests.Controllers
             _cacheKeyServiceMock = new Mock<ICacheKeyService>();
             _urlValidatorMock = new Mock<IUrlValidator>();
             _jsonOptionsService = new JsonOptionsService();
-            _loggerMock = new Mock<ILogger<AudioController>>();
+            _processingLoggerMock = new Mock<ILogger<ProcessingController>>();
+            _downloadLoggerMock = new Mock<ILogger<DownloadController>>();
+            _streamLoggerMock = new Mock<ILogger<StreamController>>();
+            _resultLoggerMock = new Mock<ILogger<ResultController>>();
 
             // Setup cache key service to return predictable keys
             _cacheKeyServiceMock.Setup(c => c.GenerateFromUrl(It.IsAny<string>()))
@@ -54,20 +64,45 @@ namespace Quintessentia.Tests.Controllers
                     return false;
                 });
 
-            _controller = new AudioController(
+            // Create the focused controllers
+            _processingController = new ProcessingController(
                 _audioServiceMock.Object,
+                _cacheKeyServiceMock.Object,
+                _urlValidatorMock.Object,
+                _processingLoggerMock.Object
+            );
+
+            _downloadController = new DownloadController(
                 _episodeQueryServiceMock.Object,
-                _progressServiceMock.Object,
+                _downloadLoggerMock.Object
+            );
+
+            _streamController = new StreamController(
+                _audioServiceMock.Object,
                 _cacheKeyServiceMock.Object,
                 _urlValidatorMock.Object,
                 _jsonOptionsService,
-                _loggerMock.Object
+                _streamLoggerMock.Object
+            );
+
+            _resultController = new ResultController(
+                _episodeQueryServiceMock.Object,
+                _resultLoggerMock.Object
+            );
+
+            // Create the facade controller
+            _controller = new AudioController(
+                _processingController,
+                _downloadController,
+                _streamController,
+                _resultController
             );
 
             // Setup HttpContext for controller
+            var httpContext = new DefaultHttpContext();
             _controller.ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext()
+                HttpContext = httpContext
             };
         }
 

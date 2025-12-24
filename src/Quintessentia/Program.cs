@@ -1,6 +1,8 @@
 using Quintessentia.Controllers;
-using Quintessentia.Services.Contracts;
+using Quintessentia.Middleware;
 using Quintessentia.Services;
+using Quintessentia.Services.Contracts;
+using Quintessentia.Services.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +54,11 @@ else
     builder.Services.AddScoped<IAzureOpenAIService, AzureOpenAIService>();
 }
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<AzureBlobStorageHealthCheck>("azure-blob-storage", tags: ["azure", "storage"])
+    .AddCheck<AzureOpenAIHealthCheck>("azure-openai", tags: ["azure", "ai"]);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -70,10 +77,34 @@ if (app.Environment.IsDevelopment())
 }
 app.UseRouting();
 
+// Add correlation ID middleware for request tracing
+app.UseCorrelationId();
+
 app.UseAuthorization();
 
-// Health check endpoint for Azure Web Apps
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+// Health check endpoint for Azure Web Apps with comprehensive monitoring
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = new
+        {
+            status = report.Status.ToString(),
+            timestamp = DateTime.UtcNow,
+            duration = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds,
+                data = e.Value.Data
+            })
+        };
+        await context.Response.WriteAsJsonAsync(result);
+    }
+});
 
 app.MapStaticAssets();
 

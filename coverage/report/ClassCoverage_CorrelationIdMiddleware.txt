@@ -1,0 +1,28 @@
+================================================================================
+Class Coverage Report: CorrelationIdMiddleware
+================================================================================
+Generated: 2025-12-23 16:08:01
+Full Name: Quintessentia.Middleware.CorrelationIdMiddleware
+Namespace: Quintessentia.Middleware
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       0% (0/12 lines)
+Branch Coverage:     0% (0/4 branches)
+Method Coverage:     0% (0/2 methods)
+Fully Covered:       0% (0/2 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 70% improvement
+
+UNCOVERED METHODS (2)
+--------------------------------------------------------------------------------  • GetOrCreateCorrelationId
+  • .ctor
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
+Focus on the 2 uncovered method(s) listed above.
+
+For detailed line-by-line coverage, see: Quintessentia_CorrelationIdMiddleware.html
+
+================================================================================

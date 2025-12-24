@@ -1,0 +1,27 @@
+================================================================================
+Class Coverage Report: AzureOpenAIHealthCheck/<CheckHealthAsync>d__3
+================================================================================
+Generated: 2025-12-23 16:08:01
+Full Name: Quintessentia.Services.HealthChecks.AzureOpenAIHealthCheck/<CheckHealthAsync>d__3
+Namespace: Quintessentia.Services.HealthChecks
+
+COVERAGE SUMMARY
+--------------------------------------------------------------------------------
+Line Coverage:       0% (0/32 lines)
+Branch Coverage:     0% (0/10 branches)
+Method Coverage:     0% (0/1 methods)
+Fully Covered:       0% (0/1 methods)
+
+STATUS
+--------------------------------------------------------------------------------⚠ BELOW THRESHOLD (70%) - Needs 70% improvement
+
+UNCOVERED METHODS (1)
+--------------------------------------------------------------------------------  • MoveNext
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------Low coverage. Prioritize adding tests for this class.
+Focus on the 1 uncovered method(s) listed above.
+
+For detailed line-by-line coverage, see: Quintessentia_AzureOpenAIHealthCheck/<CheckHealthAsync>d__3.html
+
+================================================================================
